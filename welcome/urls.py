@@ -47,7 +47,11 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),  # Add the logout URL
     path('add-business/', views.add_business, name='add_business'),
     path('business/<int:business_id>/members/', views.business_members_view, name='business_members'),
+<<<<<<< HEAD
     path('change_user_role/<int:user_id>/', views.change_user_role, name='change_user_role'),
     path('members-dashboard/', views.members_dashboard_view, name='members_dashboard'),
     path('reset-password/', views.reset_password, name='reset_password'),
+=======
+
+>>>>>>> b7ad2d4592c911646426d5433b7d797b74b404ff
 ] +static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

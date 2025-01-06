@@ -18,8 +18,11 @@ from django.contrib import messages
 import requests
 from django.http import HttpResponseRedirect
 from django.core.files.storage import FileSystemStorage
+<<<<<<< HEAD
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
+=======
+>>>>>>> b7ad2d4592c911646426d5433b7d797b74b404ff
 
 # Function to handle user registration
 def register_view(request):
@@ -166,6 +169,7 @@ def dashboard_view(request):
             user_businesses = Business.objects.filter(user=request.user)
             business_name = user_businesses.first().name if user_businesses.exists() else "No Business"
             user_business_image = user_businesses.first().icon.url if user_businesses.exists() and user_businesses.first().icon else None
+<<<<<<< HEAD
             
             # Get the members of the first business
             if user_businesses.exists():
@@ -179,6 +183,8 @@ def dashboard_view(request):
                 user_members = []       
             # Debugging output
             print(f"User Members: {list(user_members)}")  # Check the members
+=======
+>>>>>>> b7ad2d4592c911646426d5433b7d797b74b404ff
 
         else:
             user_tasks = LoggedUserTask.objects.filter(user=user).order_by('-created_at')
@@ -199,9 +205,12 @@ def dashboard_view(request):
         context['user'] = user
         context['business_name'] = business_name
         context['user_business_image'] = user_business_image
+<<<<<<< HEAD
         context['user_businesses'] = user_businesses
         context['user_members'] = user_members  # Add user members to context
         context['has_businesses'] = user_businesses.exists()
+=======
+>>>>>>> b7ad2d4592c911646426d5433b7d797b74b404ff
 
         return render(request, 'index.html', context)
 
@@ -1032,6 +1041,7 @@ def business_members_view(request, business_id):
         'users': member_details
     }
     return render(request, 'member_detail.html', context)
+<<<<<<< HEAD
 
 # Function to change user role
 @login_required
@@ -1082,3 +1092,5 @@ def reset_password(request):
     else:
         form = PasswordChangeForm(request.user)
     return render(request, 'reset_password.html', {'form': form})
+=======
+>>>>>>> b7ad2d4592c911646426d5433b7d797b74b404ff

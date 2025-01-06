@@ -139,6 +139,7 @@ class Business(models.Model):
     employee_file = models.FileField(upload_to='employee_files/')
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='businesses')
     members = models.ManyToManyField(CustomUser, related_name='member_of_businesses')
+<<<<<<< HEAD
 
 class UserProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -147,3 +148,5 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return self.user.username
+=======
+>>>>>>> b7ad2d4592c911646426d5433b7d797b74b404ff
