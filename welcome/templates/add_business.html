@@ -1,0 +1,26 @@
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Business</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+    <h1>Add Your Business</h1>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label for="company_name">Company Name:</label>
+        <input type="text" id="company_name" name="company_name" required><br><br>
+
+        <label for="icon">Company Icon:</label>
+        <input type="file" id="icon" name="icon" accept="image/*" required><br><br>
+
+        <label for="employee_file">Employee Details (Excel file):</label>
+        <input type="file" id="employee_file" name="employee_file" accept=".xls,.xlsx" required><br><br>
+
+        <button type="submit">Add Business</button>
+    </form>
+</body>
+</html>

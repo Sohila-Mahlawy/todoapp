@@ -44,5 +44,10 @@ urlpatterns = [
     path('process_excel/', views.process_excel, name='process_excel'),
     path('get_progress/', views.get_progress, name='get_progress'),
     path('loading/', views.loading_page, name='loading_page'),  # Add the loading page URL
-
+    path('logout/', views.logout_view, name='logout'),  # Add the logout URL
+    path('add-business/', views.add_business, name='add_business'),
+    path('business/<int:business_id>/members/', views.business_members_view, name='business_members'),
+    path('change_user_role/<int:user_id>/', views.change_user_role, name='change_user_role'),
+    path('members-dashboard/', views.members_dashboard_view, name='members_dashboard'),
+    path('reset-password/', views.reset_password, name='reset_password'),
 ] +static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

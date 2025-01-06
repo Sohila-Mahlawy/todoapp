@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from .models import UnloggedUserTask, LoggedUserTask, ProUserTask, Project, TaskFeedback, Invitation,CustomUser,SubscriptionOrder
+from .models import UnloggedUserTask, LoggedUserTask, ProUserTask, Project, TaskFeedback, Invitation,CustomUser,SubscriptionOrder,Business
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate ,logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from .forms import CustomUserCreationForm,ProjectForm
@@ -17,7 +17,9 @@ from django.utils.timezone import now
 from django.contrib import messages
 import requests
 from django.http import HttpResponseRedirect
-
+from django.core.files.storage import FileSystemStorage
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
 
 # Function to handle user registration
 def register_view(request):
@@ -55,10 +57,17 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                return redirect('dashboard')
+                user.userprofile.logged_in_status = 'Logged In'
+                user.userprofile.save()
+                return redirect('members_dashboard')
     else:
         form = AuthenticationForm()
     return render(request, 'login.html', {'form': form})
+
+def logout_view(request):
+    logout(request)  # Log out the user
+    return redirect('login')  # Redirect to the login page after logout
+
 # Function to create a task for unlogged users
 def create_task(request):
     if request.method == 'POST':
@@ -154,43 +163,57 @@ def dashboard_view(request):
     if user.is_authenticated:
         if user.subscription_type == 'pro':
             tasks = ProUserTask.objects.filter(user=user).order_by('-created_at')
+            user_businesses = Business.objects.filter(user=request.user)
+            business_name = user_businesses.first().name if user_businesses.exists() else "No Business"
+            user_business_image = user_businesses.first().icon.url if user_businesses.exists() and user_businesses.first().icon else None
+            
+            # Get the members of the first business
+            if user_businesses.exists():
+                first_business = user_businesses.first()
+                business_name = first_business.name
+                user_business_image = first_business.icon.url if first_business.icon else None
+                user_members = first_business.members.all()
+            else:
+                business_name = "No Business"
+                user_business_image = None
+                user_members = []       
+            # Debugging output
+            print(f"User Members: {list(user_members)}")  # Check the members
+
         else:
             user_tasks = LoggedUserTask.objects.filter(user=user).order_by('-created_at')
             assigned_tasks = ProUserTask.objects.filter(assigned_to=user).order_by('-created_at')
-            # Combine and sort the querysets
             tasks = sorted(
                 list(user_tasks) + list(assigned_tasks),
                 key=lambda t: t.created_at,
                 reverse=True
             )
 
-        # Calculate completed tasks count
-        completed_task_count = sum(1 for task in tasks if task.is_done)  # Manual filtering for lists
-
-        # Slice the tasks list to get the first 5
+        completed_task_count = sum(1 for task in tasks if task.is_done)
         tasks = tasks[:5]
 
         context['tasks'] = tasks
-        context['task_count'] = len(tasks)  # Add the task count here
-        context['completed_task_count'] = completed_task_count  # Add completed task count here
+        context['task_count'] = len(tasks)
+        context['completed_task_count'] = completed_task_count
         context['is_pro_user'] = user.subscription_type == 'pro'
         context['user'] = user
+        context['business_name'] = business_name
+        context['user_business_image'] = user_business_image
+        context['user_businesses'] = user_businesses
+        context['user_members'] = user_members  # Add user members to context
+        context['has_businesses'] = user_businesses.exists()
 
         return render(request, 'index.html', context)
 
     else:
         ip_address = get_client_ip(request)
         tasks = UnloggedUserTask.objects.filter(ip_address=ip_address).order_by('-created_at')
-
-        # Calculate completed tasks count
         completed_task_count = tasks.filter(is_done=True).count()
-
-        # Slice the tasks list to get the first 5
         tasks = tasks[:5]
 
         context['tasks'] = tasks
-        context['task_count'] = len(tasks)  # Add the task count here
-        context['completed_task_count'] = completed_task_count  # Add completed task count here
+        context['task_count'] = len(tasks)
+        context['completed_task_count'] = completed_task_count
 
         return render(request, 'index.html', context)
 
@@ -797,9 +820,8 @@ from django.conf import settings
 import os
 from pathlib import Path
 
-def process_excel(request):
+def process_excel(request,file_path):
     # Construct the full file path
-    file_path = os.path.join(settings.MEDIA_ROOT, 'MOCK_DATA.xlsx')
     file_path = Path(file_path)
 
     # Log the resolved file path for debugging
@@ -820,10 +842,39 @@ def process_excel(request):
     return render(request, 'loading_page.html')
 
 def create_accounts_from_excel(file_path):
+    # Define a mapping of possible column names to the expected database fields
+    column_mapping = {
+        'Full Name': 'Name',
+        'Employee Name': 'Name',
+        'Employee Names': 'Name',
+        'Name': 'Name',
+        'Email Address': 'Email',
+        'Email': 'Email',
+        'Emails': 'Email',
+        'Role Type': 'Role',
+        'User Role': 'Role',
+        'Role': 'Role',
+        'Job Title': 'Job Description',
+        'Job Description': 'Job Description',
+        'Description': 'Job Description',
+    }
+
     try:
         data = pd.read_excel(file_path)
     except FileNotFoundError:
         raise FileNotFoundError(f"Excel file not found at: {file_path}")
+
+    # Standardize column names
+    standardized_columns = {
+        original: column_mapping.get(original, original) for original in data.columns
+    }
+    data.rename(columns=standardized_columns, inplace=True)
+
+    # Validate that all required columns are present
+    required_columns = ['Name', 'Email', 'Job Description', 'Role']
+    missing_columns = [col for col in required_columns if col not in data.columns]
+    if missing_columns:
+        raise ValueError(f"The following required columns are missing after standardization: {missing_columns}")
 
     total_rows = len(data)
     members_data = []  # Initialize the list to store member data
@@ -916,7 +967,7 @@ def send_user_credentials_email(email, password, name):
         <li>Password: {password}</li>
     </ul>
     <p>We <strong>strongly</strong> recommend changing your password immediately after your first login.</p>
-    <p>Sincerely,<br>The Team</p>
+    <p>Sincerely,<br>Net Full Team</p>
     """
 
     msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [email])
@@ -926,3 +977,108 @@ def send_user_credentials_email(email, password, name):
     except Exception as e:
         print(f"Error sending email to {email}: {e}")
 
+
+@login_required
+def add_business(request):
+    if request.method == 'POST':
+        company_name = request.POST.get('company_name')
+        icon = request.FILES['icon']
+        employee_file = request.FILES['employee_file']
+
+        # Save the icon to the 'uploaded_icons' directory
+        icon_fs = FileSystemStorage(location='media/uploaded_icons')
+        icon_name = icon_fs.save(icon.name, icon)
+
+        # Save the employee file to the 'uploaded_excel' directory
+        excel_fs = FileSystemStorage(location='media/uploaded_excel')
+        employee_file_name = excel_fs.save(employee_file.name, employee_file)
+
+        # Create a new Business instance
+        Business.objects.create(
+            name=company_name,
+            icon=f'uploaded_icons/{icon_name}',
+            employee_file=f'uploaded_excel/{employee_file_name}',
+            user=request.user
+        )
+
+        # Pass the uploaded employee file path to the process_excel function
+        employee_file_path = excel_fs.path(employee_file_name)
+        return process_excel(request, employee_file_path)
+
+    return render(request, 'add_business.html')
+
+
+
+def business_members_view(request, business_id):
+    """
+    View to render members of a specific business.
+    """
+    business = get_object_or_404(Business, id=business_id)
+    members = business.members.all()
+
+    # Collect member details
+    member_details = []
+    for member in members:
+        profile = getattr(member, 'profile', None)
+        member_details.append({
+            'name': f"{member.first_name} {member.last_name}",
+            'email': member.email,
+            'password': member.password,  # Encrypted, use for reference only
+            'role': profile.role if profile else 'No role assigned'
+        })
+
+    context = {
+        'business': business,
+        'users': member_details
+    }
+    return render(request, 'member_detail.html', context)
+
+# Function to change user role
+@login_required
+def change_user_role(request, user_id):
+    if request.method == 'POST':
+        user = get_object_or_404(CustomUser, id=user_id)
+        new_role = request.POST.get('role')
+
+        # Update the user's role
+        user.role = new_role
+        user.save()
+
+        messages.success(request, f"User role changed to {new_role}.")
+        return redirect('dashboard')  # Redirect to the dashboard or appropriate page
+
+    return redirect('dashboard')  # Fallback redirect
+
+@login_required
+def members_dashboard_view(request):
+    user = request.user
+    user_businesses = Business.objects.filter(members=user)  # Assuming you have a ManyToMany relationship
+
+    if user_businesses.exists():
+        # Get the first business the user is a member of
+        first_business = user_businesses.first()
+        user_members = first_business.members.all()  # Assuming 'members' is a related name for the user field
+
+        context = {
+            'user_members': user_members,
+            'business_name': first_business.name,  # Pass the business name to the template
+        }
+        return render(request, 'members_dashboard.html', context)
+    else:
+        # Redirect to a different page if the user is not a member of any business
+        return redirect('dashboard_view')  # Replace with your desired route
+
+@login_required
+def reset_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Important!
+            # Update user profile status
+            user.userprofile.status = 'Activated'
+            user.userprofile.save()
+            return redirect('members_dashboard')  # Redirect to the members dashboard after successful password change
+    else:
+        form = PasswordChangeForm(request.user)
+    return render(request, 'reset_password.html', {'form': form})
