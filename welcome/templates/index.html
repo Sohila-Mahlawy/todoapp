@@ -19,6 +19,9 @@
     <link href="{% static 'custom.css' %}" rel="stylesheet" />
      <!-- GOOGLE FONTS-->
    <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css' />
+
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.min.css">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/themes/introjs-modern.min.css">
 </head>
 <body>
     <div id="wrapper">
@@ -30,16 +33,22 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="{% url 'dashboard' %}">Task Manager</a> 
+                {% if business_name is not None %}
+                    <a class="navbar-brand" href="{% url 'dashboard' %}">{{ business_name }}</a>
+                {% else %}
+                    <a class="navbar-brand" href="{% url 'dashboard' %}">Task Manager</a>
+                {% endif %}
             </div>
-  <div style="color: white;
-padding: 15px 50px 5px 50px;
-float: right;
-font-size: 16px;">{% if user.is_authenticated %}<a href="/logout" class="btn btn-danger square-btn-adjust">Logout</a>
-{% else %}
-<a href="/login" class="btn btn-danger square-btn-adjust">Login</a>
-<a href="/register" class="btn btn-danger square-btn-adjust">Register</a>
-{% endif %}
+  <div style="color: white; padding: 15px 50px 5px 50px; float: right; font-size: 16px;" class="navbar-right">
+    <button onclick="startTutorial()" class="btn btn-info square-btn-adjust" style="margin-right: 10px;">
+        <i class="fa fa-question-circle"></i> Start Tutorial
+    </button>
+    {% if user.is_authenticated %}
+        <a href="/logout" class="btn btn-danger square-btn-adjust">Logout</a>
+    {% else %}
+        <a href="/login" class="btn btn-danger square-btn-adjust" style="margin-right: 10px;">Login</a>
+        <a href="/register" class="btn btn-danger square-btn-adjust">Register</a>
+    {% endif %}
 </div>
         </nav>   
            <!-- /. NAV TOP  -->
@@ -137,28 +146,6 @@ font-size: 16px;">{% if user.is_authenticated %}<a href="/logout" class="btn btn
                     {% endif %}
                 </a>
 
-                </div>
-             </div>
-		     </div>
-                    <div class="col-md-3 col-sm-6 col-xs-6">           
-			<div class="panel panel-back noti-box">
-                <span class="icon-box bg-color-blue set-icon">
-                    <i class="fa fa-bell-o"></i>
-                </span>
-                <div class="text-box" >
-                    <p class="main-text">240 New</p>
-                    <p class="text-muted">Notifications</p>
-                </div>
-             </div>
-		     </div>
-                    <div class="col-md-3 col-sm-6 col-xs-6">           
-			<div class="panel panel-back noti-box">
-                <span class="icon-box bg-color-brown set-icon">
-                    <i class="fa fa-rocket"></i>
-                </span>
-                <div class="text-box" >
-                    <p class="main-text">3 Orders</p>
-                    <p class="text-muted">Pending</p>
                 </div>
              </div>
 		     </div>
@@ -431,237 +418,94 @@ font-size: 16px;">{% if user.is_authenticated %}<a href="/logout" class="btn btn
     <script src="../static/js/morris/morris.js"></script>
       <!-- CUSTOM SCRIPTS -->
     <script src="../static/js/custom.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 <script>
-    // Get task data from context
-    var totalTasks = {{ task_count }};
-    var completedTasks = {{ completed_task_count }};
-    var remainingTasks = totalTasks - completedTasks;
-    
-    // Clear any previous chart content before rendering the new one
-    $('#morris-donut-chart').html('');
-
-    // Create the donut chart with the data
-    new Morris.Donut({
-      element: 'morris-donut-chart',
-      data: [
-        { label: 'Completed Tasks', value: completedTasks },
-        { label: 'Remaining Tasks', value: remainingTasks }
-      ],
-      colors: ['#4caf50', '#f44336'],  // Green for completed, Red for remaining
-      resize: true
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-        // Attach event listeners to all upload forms
-        document.querySelectorAll('form[action*="upload_task_file"]').forEach(form => {
-            form.addEventListener('submit', function(event) {
-                event.preventDefault(); // Prevent default form submission
-                
-                const formData = new FormData(this); // Collect form data
-                const actionUrl = this.action; // Get the form's action URL
-                
-                fetch(actionUrl, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': getCookie('csrftoken') // Add CSRF token
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('File upload failed');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    alert(data.message || 'File uploaded successfully');
-                    location.reload(); // Reload the page to reflect changes
-                })
-                .catch(error => {
-                    console.error('Error during file upload:', error);
-                    alert('An error occurred during file upload.');
-                });
-            });
-        });
-    });
-
-
-
-                function getCookie(name) {
-                    let cookieValue = null;
-                    if (document.cookie && document.cookie !== "") {
-                        const cookies = document.cookie.split(";");
-                        for (let i = 0; i < cookies.length; i++) {
-                            const cookie = cookies[i].trim();
-                            if (cookie.startsWith(name + "=")) {
-                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                                break;
-                            }
-                        }
-                    }
-                    return cookieValue;
-                }
-</script>
-
-    
-        <!-- Add before closing </body> -->
-<script>
-    // Function to start the tutorial
-    function startTutorial() {
-        const tour = introJs().setOptions({
-            steps: [
-                {
-                    title: 'Welcome',
-                    intro: 'Let\'s take a quick tour of your dashboard!'
-                },
-                {
-                    element: document.querySelector('.navbar-brand'),
-                    intro: 'This shows your business name.',
-                    position: 'bottom'
-                },
-                {
-                    element: 'a[href="{% url "dashboard" %}"]',
-                    intro: 'This is your main dashboard where you can see an overview of everything.',
-                    position: 'right'
-                },
-                {
-                    element: 'a[href="{% url "user_tasks_view" %}"]',
-                    intro: 'View and manage all your tasks here.',
-                    position: 'right'
-                },
-                {
-                    element: 'a[href="{% url "create_task" %}"]',
-                    intro: 'Create new tasks for your team members.',
-                    position: 'right'
-                },
-                {
-                    element: 'a[href="{% url "user_projects_view" %}"]',
-                    intro: 'Access all your projects and their details.',
-                    position: 'right'
-                },
-                {
-                    title: 'Done!',
-                    intro: 'You\'re all set to start using the dashboard!'
-                }
-            ],
-            showProgress: true,
-            showBullets: true,
-            exitOnOverlayClick: false,
-            exitOnEsc: false,
-            showStepNumbers: true,
-            doneLabel: 'Finish'
-        });
-
-        // Add custom buttons
-        tour.onbeforechange(function() {
-            setTimeout(() => {
-                const tooltipLayer = document.querySelector('.introjs-tooltip');
-                const buttonLayer = document.querySelector('.introjs-tooltipbuttons');
-                
-                // Remove existing skip button if any
-                const existingSkipBtn = document.querySelector('.custom-skip-button');
-                if (existingSkipBtn) {
-                    existingSkipBtn.remove();
-                }
-
-                // Create new skip button
-                const skipButton = document.createElement('a');
-                skipButton.className = 'introjs-button custom-skip-button';
-                skipButton.href = 'javascript:void(0);';
-                skipButton.innerHTML = 'Skip Tutorial';
-                skipButton.style.cssText = `
-                    margin-right: 5px;
-                    background: #dc3545;
-                    color: white;
-                    border: none;
-                `;
-                
-                // Insert skip button before the "Next" button
-                if (buttonLayer) {
-                    buttonLayer.insertBefore(skipButton, buttonLayer.firstChild);
-                }
-
-                // Add click event to skip button
-                skipButton.addEventListener('click', () => {
-                    tour.exit();
-                });
-            }, 0);
-        });
-
-        tour.start();
-    }
-
-    // Make sure the DOM is fully loaded before running
-    window.addEventListener('load', function() {
-        // Add the tutorial button
-        const navbar = document.querySelector('.navbar-cls-top');
-        const tutorialButton = document.createElement('button');
-        tutorialButton.innerHTML = '<i class="fa fa-question-circle"></i> Start Tutorial';
-        tutorialButton.className = 'btn btn-primary';
-        tutorialButton.style.margin = '10px';
-        tutorialButton.onclick = startTutorial;
-        navbar.appendChild(tutorialButton);
-
-        // Show popup for first-time visitors
+    // Wait for document to be fully loaded
+    $(document).ready(function() {
+        console.log('Document ready');
+        // Check if tutorial has been shown
         if (!localStorage.getItem('tutorialShown')) {
-            // Create and style the popup
-            const popup = document.createElement('div');
-            popup.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 0 10px rgba(0,0,0,0.3);
-                z-index: 10000;
-                text-align: center;
-                min-width: 300px;
-            `;
-            
-            // Add popup content
-            popup.innerHTML = `
-                <h3 style="margin-bottom: 20px;">Welcome to the Dashboard!</h3>
-                <p style="margin-bottom: 20px;">Would you like to take a quick tour of the features?</p>
-                <button class="btn btn-primary" style="margin-right: 10px;">Yes, show me around</button>
-                <button class="btn btn-default">Maybe later</button>
-            `;
-
-            // Create overlay
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 9999;
-            `;
-
-            // Add to document
-            document.body.appendChild(overlay);
-            document.body.appendChild(popup);
-
-            // Handle button clicks
-            const [yesButton, noButton] = popup.querySelectorAll('button');
-            
-            yesButton.addEventListener('click', () => {
-                popup.remove();
-                overlay.remove();
-                startTutorial();
-                localStorage.setItem('tutorialShown', 'true');
-            });
-
-            noButton.addEventListener('click', () => {
-                popup.remove();
-                overlay.remove();
-                localStorage.setItem('tutorialShown', 'true');
-            });
+            console.log('Showing tutorial modal');
+            setTimeout(function() {
+                $('#tutorialModal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            }, 1000); // Delay of 1 second
         }
     });
+
+    function startTutorialFromModal() {
+        console.log('Starting tutorial from modal');
+        $('#tutorialModal').modal('hide');
+        setTimeout(startTutorial, 500);
+    }
+
+    function startTutorial() {
+        console.log('Starting tutorial');
+        try {
+            const tour = introJs().setOptions({
+                steps: [
+                    {
+                        title: 'Welcome',
+                        intro: 'Let\'s take a quick tour of your dashboard!'
+                    },
+                    {
+                        element: '.navbar-brand',
+                        intro: 'This shows your business name.',
+                        position: 'bottom'
+                    },
+                    {
+                        element: 'a[href="{% url "dashboard" %}"]',
+                        intro: 'This is your main dashboard where you can see an overview of everything.',
+                        position: 'right'
+                    },
+                    {
+                        element: 'a[href="{% url "user_tasks_view" %}"]',
+                        intro: 'View and manage all your tasks here.',
+                        position: 'right'
+                    },
+                    {
+                        element: 'a[href="{% url "create_task" %}"]',
+                        intro: 'Create new tasks for your team members.',
+                        position: 'right'
+                    },
+                    {
+                        element: 'a[href="{% url "user_projects_view" %}"]',
+                        intro: 'Access all your projects and their details.',
+                        position: 'right'
+                    },
+                    {
+                        title: 'Done!',
+                        intro: 'You\'re all set to start using the dashboard!'
+                    }
+                ],
+                showProgress: true,
+                showBullets: true,
+                exitOnOverlayClick: false,
+                exitOnEsc: false,
+                showStepNumbers: true,
+                doneLabel: 'Finish'
+            });
+
+            tour.start();
+            
+            tour.oncomplete(function() {
+                localStorage.setItem('tutorialShown', 'true');
+            });
+
+            tour.onexit(function() {
+                localStorage.setItem('tutorialShown', 'true');
+            });
+
+        } catch (error) {
+            console.error('Error starting tutorial:', error);
+        }
+    }
 </script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
    
 </body>
 </html>

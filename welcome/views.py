@@ -900,75 +900,49 @@ def process_excel(request, file_path):
 def create_accounts_from_excel(file_path, business):
     try:
         # Read the Excel file
+        print(f"Reading file from: {file_path}")  # Debug print
         data = pd.read_excel(file_path)
         
-        print("Original columns:", data.columns.tolist())
+        print("Original columns:", data.columns.tolist())  # Debug print
 
-        # Define column mappings with all possible variations
-        column_variations = {
-            'Name': ['Name', 'Full Name', 'Employee Name', 'Employee Names', 'FullName', 'Employee_Name'],
-            'Email': ['Email', 'Email Address', 'Emails', 'EmailAddress', 'Mail'],
-            'Role': ['Role', 'Role Type', 'User Role', 'Position', 'Job Role'],
-            'Job Description': ['Job Description', 'Job Title', 'Description', 'Position Description', 'JobDescription'],
-            'Start Date': ['Start Date', 'Starting Date', 'Date', 'Join Date', 'StartDate'],
-            'Qualifications': ['Qualifications', 'Skills', 'Qualification', 'Education'],
-            'Comments': ['Comments', 'Notes', 'Additional Notes', 'Comment'],
-            'Penalties': ['Penalties', 'Penalty Points', 'Points', 'Penalty'],
-            'Section': ['Section', 'Department', 'Team', 'Unit']
-        }
-
-        # Create a mapping dictionary for standardization
-        column_mapping = {}
-        for standard_name, variations in column_variations.items():
-            for variant in variations:
-                if variant in data.columns:
-                    column_mapping[variant] = standard_name
-                    break
-                matches = [col for col in data.columns if col.lower() == variant.lower()]
-                if matches:
-                    column_mapping[matches[0]] = standard_name
-                    break
-
-        print("Column mapping:", column_mapping)
-        data = data.rename(columns=column_mapping)
-        print("Standardized columns:", data.columns.tolist())
+        # Standardize column names (case-insensitive)
+        data.columns = [col.strip().lower() for col in data.columns]
+        
+        # Required columns check
+        required_columns = ['name', 'email']
+        missing_columns = [col for col in required_columns if col not in data.columns]
+        if missing_columns:
+            raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
 
         total_rows = len(data)
         members_data = []
-        created_users = []  # Keep track of created users
+        created_users = []
 
         for index, row in data.iterrows():
-            progress = int((index / total_rows) * 100)
-            cache.set('progress', progress)
-
             try:
-                name = str(row.get('Name', row.get('Full Name', '')))
-                email = str(row.get('Email', row.get('Email Address', ''))).strip()
-                job_description = str(row.get('Job Description', row.get('Role', '')))
-                role = str(row.get('Role', row.get('Job Description', '')))
-                start_date = row.get('Start Date', None)
-                qualifications = str(row.get('Qualifications', ''))
-                comments = str(row.get('Comments', ''))
-                penalties = int(row.get('Penalties', 0))
-                section = str(row.get('Section', ''))
+                # Extract data (case-insensitive)
+                name = str(row.get('name', '')).strip()
+                email = str(row.get('email', '')).strip()
+                role = str(row.get('role', 'member')).strip()  # Default role is 'member'
 
                 if not email or not name:
                     print(f"Skipping row {index}: Missing name or email")
                     continue
 
-                # Generate password
-                password_length = 12
-                characters = string.ascii_letters + string.digits + string.punctuation
-                password = ''.join(random.choice(characters) for _ in range(password_length))
+                # Generate username from email
+                username = email.split('@')[0]
+                
+                # Generate random password
+                password = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
 
                 # Create or update user
-                username = email.split('@')[0]
                 user, created = CustomUser.objects.get_or_create(
                     email=email,
                     defaults={
                         'username': username,
                         'first_name': name.split()[0] if ' ' in name else name,
-                        'last_name': ' '.join(name.split()[1:]) if ' ' in name else ''
+                        'last_name': ' '.join(name.split()[1:]) if ' ' in name else '',
+                        'role': role
                     }
                 )
 
@@ -976,43 +950,40 @@ def create_accounts_from_excel(file_path, business):
                     user.set_password(password)
                     user.save()
                     print(f"Created new user: {email}")  # Debug print
+                    
+                    # Create UserProfile if it doesn't exist
+                    UserProfile.objects.get_or_create(
+                        user=user,
+                        defaults={
+                            'status': 'Pending',
+                            'logged_in_status': 'Never Logged In'
+                        }
+                    )
 
-                # Create or update profile
-                MemberProfile.objects.update_or_create(
-                    user=user,
-                    defaults={
-                        'job_description': job_description,
-                        'role': role,
-                        'start_date': pd.to_datetime(start_date).date() if pd.notnull(start_date) else None,
-                        'qualifications': qualifications,
-                        'comments': comments,
-                        'penalties': penalties,
-                        'section': section
-                    }
-                )
+                    # Send credentials email
+                    send_user_credentials_email(email, password, name)
+                    
+                    members_data.append({
+                        'Email': email,
+                        'Password': password
+                    })
 
-                # Add user to created_users list
                 created_users.append(user)
-                members_data.append({'Email': email, 'Password': password})
 
             except Exception as e:
                 print(f"Error processing row {index}: {str(e)}")
                 continue
 
-        # Bulk add all users to business members
-        print(f"Adding {len(created_users)} users to business {business.name}")  # Debug print
-        business.members.add(*created_users)
-        business.save()
-
-        # Verify members were added
-        member_count = business.members.count()
-        print(f"Business now has {member_count} members")  # Debug print
+        # Add users to business
+        if created_users:
+            business.members.add(*created_users)
+            business.save()
+            print(f"Added {len(created_users)} users to business {business.name}")
 
         # Create Excel file with credentials
         if members_data:
             create_members_excel(members_data)
 
-        cache.set('progress', 100)
         return members_data
 
     except Exception as e:
@@ -1196,33 +1167,30 @@ def reset_password(request):
 def process_business_data(request):
     if request.method == 'POST':
         try:
-            company_name = request.POST.get('company_name')
-            icon_name = request.POST.get('icon_name')
             business_id = request.POST.get('business_id')
-
-            # Get the business instance
-            business = Business.objects.get(id=business_id)
+            business = get_object_or_404(Business, id=business_id)
             
-            # Get the employee file path from the business instance
-            employee_file_path = os.path.join(settings.MEDIA_ROOT, business.employee_file.name)
+            # Get the absolute file path
+            employee_file_path = os.path.join(settings.MEDIA_ROOT, str(business.employee_file))
+            
+            print(f"Processing file: {employee_file_path}")  # Debug print
+            
+            if not os.path.exists(employee_file_path):
+                raise FileNotFoundError(f"Excel file not found at {employee_file_path}")
 
-            print(f"File path: {employee_file_path}")  # Debug print
+            # Create the accounts
+            members_data = create_accounts_from_excel(employee_file_path, business)
+            
+            if members_data:
+                messages.success(request, f"Successfully created {len(members_data)} user accounts!")
+            else:
+                messages.warning(request, "No new user accounts were created.")
 
-            # Pass the business instance to create_accounts_from_excel
-            create_accounts_from_excel(employee_file_path, business)
-
-            # Update business details
-            business.name = company_name
-            business.icon = f'uploaded_icons/{icon_name}'
-            business.save()
-
-            messages.success(request, "Business and member data added successfully!")
             return redirect('dashboard')
 
         except Exception as e:
-            print(f"Error processing business data: {str(e)}")  # For debugging
-            print(f"File exists: {os.path.exists(employee_file_path)}")  # Debug print
-            messages.error(request, f"Error processing data: {str(e)}")
+            print(f"Error in process_business_data: {str(e)}")  # Debug print
+            messages.error(request, f"Error processing business data: {str(e)}")
             return redirect('add_business')
 
     return redirect('add_business')
