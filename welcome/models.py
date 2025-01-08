@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class CustomUser(AbstractUser):
     subscription_type = models.CharField(
@@ -139,7 +141,6 @@ class Business(models.Model):
     employee_file = models.FileField(upload_to='employee_files/')
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='businesses')
     members = models.ManyToManyField(CustomUser, related_name='member_of_businesses')
-<<<<<<< HEAD
 
 class UserProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -148,5 +149,15 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return self.user.username
-=======
->>>>>>> b7ad2d4592c911646426d5433b7d797b74b404ff
+
+@receiver(post_save, sender=CustomUser)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+
+@receiver(post_save, sender=CustomUser)
+def save_user_profile(sender, instance, **kwargs):
+    try:
+        instance.userprofile.save()
+    except UserProfile.DoesNotExist:
+        UserProfile.objects.create(user=instance)

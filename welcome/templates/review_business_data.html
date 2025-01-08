@@ -1,0 +1,97 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Business Data</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="date"],
+        input[type="number"] {
+            width: 100%;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        .submit-btn {
+            margin: 20px 0;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Review Your Business Data</h1>
+    
+    {% if data %}
+        <form method="POST" action="{% url 'process_business_data' %}">
+            {% csrf_token %}
+            <input type="hidden" name="company_name" value="{{ company_name }}">
+            <input type="hidden" name="icon_name" value="{{ icon_name }}">
+            <input type="hidden" name="business_id" value="{{ business_id }}">
+
+            <table>
+                <thead>
+                    <tr>
+                        {% for column in data.0.keys %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr>
+                        {% for field, value in row.items %}
+                        <td>
+                            {% if field == 'Start_Date' %}
+                                <input type="date" name="{{ field }}" value="{{ value|default:'' }}" {% if field in required_fields %}required{% endif %}>
+                            {% elif field == 'Penalties' %}
+                                <input type="number" name="{{ field }}" value="{{ value|default:'0' }}" min="0">
+                            {% elif field == 'Email' %}
+                                <input type="email" name="{{ field }}" value="{{ value|default:'' }}" required>
+                            {% else %}
+                                <input type="text" name="{{ field }}" value="{{ value|default:'' }}" {% if field in required_fields %}required{% endif %}>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="submit-btn">Confirm and Add Business</button>
+        </form>
+    {% else %}
+        <p>No data to review. Please <a href="{% url 'add_business' %}">upload a file</a> first.</p>
+    {% endif %}
+
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</body>
+</html>

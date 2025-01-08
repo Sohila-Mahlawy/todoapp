@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from .models import UnloggedUserTask, LoggedUserTask, ProUserTask, Project, TaskFeedback, Invitation,CustomUser,SubscriptionOrder,Business
+from .models import UnloggedUserTask, LoggedUserTask, ProUserTask, Project, TaskFeedback, Invitation,CustomUser,SubscriptionOrder,Business, UserProfile
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate ,logout
@@ -18,11 +18,9 @@ from django.contrib import messages
 import requests
 from django.http import HttpResponseRedirect
 from django.core.files.storage import FileSystemStorage
-<<<<<<< HEAD
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
-=======
->>>>>>> b7ad2d4592c911646426d5433b7d797b74b404ff
+from threading import Thread
 
 # Function to handle user registration
 def register_view(request):
@@ -48,8 +46,6 @@ def register_view(request):
         user.save()
 
     return render(request, 'register.html')
-
-    return render(request, 'register.html', {'form': form})
 # Function to handle user login
 def login_view(request):
     if request.method == 'POST':
@@ -169,22 +165,33 @@ def dashboard_view(request):
             user_businesses = Business.objects.filter(user=request.user)
             business_name = user_businesses.first().name if user_businesses.exists() else "No Business"
             user_business_image = user_businesses.first().icon.url if user_businesses.exists() and user_businesses.first().icon else None
-<<<<<<< HEAD
             
             # Get the members of the first business
             if user_businesses.exists():
                 first_business = user_businesses.first()
                 business_name = first_business.name
                 user_business_image = first_business.icon.url if first_business.icon else None
-                user_members = first_business.members.all()
+                
+                # Get members with their profile information
+                user_members = []
+                for member in first_business.members.all():
+                    # Get or create userprofile
+                    profile, created = UserProfile.objects.get_or_create(user=member)
+                    member_info = {
+                        'username': member.username,
+                        'email': member.email,
+                        'role': member.role,
+                        'id': member.id,
+                        'status': profile.logged_in_status,
+                        'is_active': profile.status
+                    }
+                    user_members.append(member_info)
             else:
                 business_name = "No Business"
                 user_business_image = None
                 user_members = []       
             # Debugging output
             print(f"User Members: {list(user_members)}")  # Check the members
-=======
->>>>>>> b7ad2d4592c911646426d5433b7d797b74b404ff
 
         else:
             user_tasks = LoggedUserTask.objects.filter(user=user).order_by('-created_at')
@@ -205,12 +212,9 @@ def dashboard_view(request):
         context['user'] = user
         context['business_name'] = business_name
         context['user_business_image'] = user_business_image
-<<<<<<< HEAD
         context['user_businesses'] = user_businesses
         context['user_members'] = user_members  # Add user members to context
         context['has_businesses'] = user_businesses.exists()
-=======
->>>>>>> b7ad2d4592c911646426d5433b7d797b74b404ff
 
         return render(request, 'index.html', context)
 
@@ -829,105 +833,191 @@ from django.conf import settings
 import os
 from pathlib import Path
 
-def process_excel(request,file_path):
-    # Construct the full file path
-    file_path = Path(file_path)
-
-    # Log the resolved file path for debugging
-    print(f"Resolved file path: {file_path}")
-
-    # Check if the file exists at the resolved path
-    if not file_path.exists():
-        return JsonResponse({'error': f"The file at '{file_path}' does not exist."}, status=404)
-
-    # Set initial progress in cache
-    cache.set('progress', 0)
-
-    # Start the background task to process the Excel file
-    thread = Thread(target=create_accounts_from_excel, args=(file_path,))
-    thread.start()
-
-    # Render the loading page
-    return render(request, 'loading_page.html')
-
-def create_accounts_from_excel(file_path):
-    # Define a mapping of possible column names to the expected database fields
-    column_mapping = {
-        'Full Name': 'Name',
-        'Employee Name': 'Name',
-        'Employee Names': 'Name',
-        'Name': 'Name',
-        'Email Address': 'Email',
-        'Email': 'Email',
-        'Emails': 'Email',
-        'Role Type': 'Role',
-        'User Role': 'Role',
-        'Role': 'Role',
-        'Job Title': 'Job Description',
-        'Job Description': 'Job Description',
-        'Description': 'Job Description',
-    }
-
+def process_excel(request, file_path):
     try:
+        # Construct the full file path
+        file_path = Path(file_path)
+
+        # Check if the file exists
+        if not file_path.exists():
+            messages.error(request, f"The file at '{file_path}' does not exist.")
+            return []
+
+        # Read the Excel file
         data = pd.read_excel(file_path)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Excel file not found at: {file_path}")
 
-    # Standardize column names
-    standardized_columns = {
-        original: column_mapping.get(original, original) for original in data.columns
-    }
-    data.rename(columns=standardized_columns, inplace=True)
+        # Define expected column names and their possible variations
+        column_variations = {
+            'Name': ['Full Name', 'Employee Name', 'Employee Names', 'Name'],
+            'Email': ['Email Address', 'Email', 'Emails'],
+            'Role': ['Role Type', 'User Role', 'Role'],
+            'Job_Description': ['Job Title', 'Job Description', 'Description'],
+            'Start_Date': ['Start Date', 'Starting Date', 'Date'],
+            'Qualifications': ['Qualifications', 'Skills'],
+            'Comments': ['Comments', 'Notes'],
+            'Penalties': ['Penalties', 'Penalty Points'],
+            'Section': ['Section', 'Department', 'Team']
+        }
 
-    # Validate that all required columns are present
-    required_columns = ['Name', 'Email', 'Job Description', 'Role']
-    missing_columns = [col for col in required_columns if col not in data.columns]
-    if missing_columns:
-        raise ValueError(f"The following required columns are missing after standardization: {missing_columns}")
+        # Standardize column names
+        renamed_columns = {}
+        for standard_name, variations in column_variations.items():
+            for variant in variations:
+                if variant in data.columns:
+                    renamed_columns[variant] = standard_name
+                    break
 
-    total_rows = len(data)
-    members_data = []  # Initialize the list to store member data
+        # Rename columns if matches found
+        if renamed_columns:
+            data = data.rename(columns=renamed_columns)
 
-    for index, row in data.iterrows():
-        # Update progress in cache
-        progress = int((index / total_rows) * 100)
-        cache.set('progress', progress)
-        time.sleep(0.1)  # Simulate processing time
+        # Convert to list of dictionaries and clean the data
+        parsed_data = []
+        for _, row in data.iterrows():
+            cleaned_row = {}
+            for col in data.columns:
+                value = row[col]
+                if pd.isna(value):
+                    cleaned_row[col] = ''
+                elif isinstance(value, pd.Timestamp):
+                    cleaned_row[col] = value.strftime('%Y-%m-%d')
+                else:
+                    cleaned_row[col] = str(value).strip()
+            parsed_data.append(cleaned_row)
 
-        name = row['Name']
-        email = row['Email']
-        job_description = row['Job Description']
-        role = row['Role']
+        # Print debugging information
+        print("Parsed Data:", parsed_data)
+        print("Columns:", data.columns.tolist())
 
-        password_length = 12
-        characters = string.ascii_letters + string.digits + string.punctuation
-        password = ''.join(random.choice(characters) for _ in range(password_length))
+        return parsed_data
 
-        user, created = CustomUser.objects.get_or_create(
-            username=email,
-            email=email,
-            defaults={'first_name': name.split()[0], 'last_name': ' '.join(name.split()[1:])}
-        )
+    except Exception as e:
+        print(f"Error processing Excel file: {str(e)}")
+        messages.error(request, f"Error processing Excel file: {str(e)}")
+        return []
 
-        if created:
-            user.set_password(password)
-            user.save()
-            send_user_credentials_email(email, password, name)  # Send email with credentials
 
-        MemberProfile.objects.update_or_create(
-            user=user,
-            defaults={'job_description': job_description, 'role': role}
-        )
+def create_accounts_from_excel(file_path, business):
+    try:
+        # Read the Excel file
+        data = pd.read_excel(file_path)
+        
+        print("Original columns:", data.columns.tolist())
 
-        # Append member data to members_data list
-        members_data.append({'Email': email, 'Password': password})
+        # Define column mappings with all possible variations
+        column_variations = {
+            'Name': ['Name', 'Full Name', 'Employee Name', 'Employee Names', 'FullName', 'Employee_Name'],
+            'Email': ['Email', 'Email Address', 'Emails', 'EmailAddress', 'Mail'],
+            'Role': ['Role', 'Role Type', 'User Role', 'Position', 'Job Role'],
+            'Job Description': ['Job Description', 'Job Title', 'Description', 'Position Description', 'JobDescription'],
+            'Start Date': ['Start Date', 'Starting Date', 'Date', 'Join Date', 'StartDate'],
+            'Qualifications': ['Qualifications', 'Skills', 'Qualification', 'Education'],
+            'Comments': ['Comments', 'Notes', 'Additional Notes', 'Comment'],
+            'Penalties': ['Penalties', 'Penalty Points', 'Points', 'Penalty'],
+            'Section': ['Section', 'Department', 'Team', 'Unit']
+        }
 
-    # Create Excel file after processing
-    if members_data:
-        create_members_excel(members_data)
+        # Create a mapping dictionary for standardization
+        column_mapping = {}
+        for standard_name, variations in column_variations.items():
+            for variant in variations:
+                if variant in data.columns:
+                    column_mapping[variant] = standard_name
+                    break
+                matches = [col for col in data.columns if col.lower() == variant.lower()]
+                if matches:
+                    column_mapping[matches[0]] = standard_name
+                    break
 
-    # After processing, ensure progress is 100%
-    cache.set('progress', 100)
+        print("Column mapping:", column_mapping)
+        data = data.rename(columns=column_mapping)
+        print("Standardized columns:", data.columns.tolist())
+
+        total_rows = len(data)
+        members_data = []
+        created_users = []  # Keep track of created users
+
+        for index, row in data.iterrows():
+            progress = int((index / total_rows) * 100)
+            cache.set('progress', progress)
+
+            try:
+                name = str(row.get('Name', row.get('Full Name', '')))
+                email = str(row.get('Email', row.get('Email Address', ''))).strip()
+                job_description = str(row.get('Job Description', row.get('Role', '')))
+                role = str(row.get('Role', row.get('Job Description', '')))
+                start_date = row.get('Start Date', None)
+                qualifications = str(row.get('Qualifications', ''))
+                comments = str(row.get('Comments', ''))
+                penalties = int(row.get('Penalties', 0))
+                section = str(row.get('Section', ''))
+
+                if not email or not name:
+                    print(f"Skipping row {index}: Missing name or email")
+                    continue
+
+                # Generate password
+                password_length = 12
+                characters = string.ascii_letters + string.digits + string.punctuation
+                password = ''.join(random.choice(characters) for _ in range(password_length))
+
+                # Create or update user
+                username = email.split('@')[0]
+                user, created = CustomUser.objects.get_or_create(
+                    email=email,
+                    defaults={
+                        'username': username,
+                        'first_name': name.split()[0] if ' ' in name else name,
+                        'last_name': ' '.join(name.split()[1:]) if ' ' in name else ''
+                    }
+                )
+
+                if created:
+                    user.set_password(password)
+                    user.save()
+                    print(f"Created new user: {email}")  # Debug print
+
+                # Create or update profile
+                MemberProfile.objects.update_or_create(
+                    user=user,
+                    defaults={
+                        'job_description': job_description,
+                        'role': role,
+                        'start_date': pd.to_datetime(start_date).date() if pd.notnull(start_date) else None,
+                        'qualifications': qualifications,
+                        'comments': comments,
+                        'penalties': penalties,
+                        'section': section
+                    }
+                )
+
+                # Add user to created_users list
+                created_users.append(user)
+                members_data.append({'Email': email, 'Password': password})
+
+            except Exception as e:
+                print(f"Error processing row {index}: {str(e)}")
+                continue
+
+        # Bulk add all users to business members
+        print(f"Adding {len(created_users)} users to business {business.name}")  # Debug print
+        business.members.add(*created_users)
+        business.save()
+
+        # Verify members were added
+        member_count = business.members.count()
+        print(f"Business now has {member_count} members")  # Debug print
+
+        # Create Excel file with credentials
+        if members_data:
+            create_members_excel(members_data)
+
+        cache.set('progress', 100)
+        return members_data
+
+    except Exception as e:
+        print(f"Error in create_accounts_from_excel: {str(e)}")
+        raise
 
 def create_members_excel(members_data):
     # Create Excel file with member data
@@ -1003,16 +1093,24 @@ def add_business(request):
         employee_file_name = excel_fs.save(employee_file.name, employee_file)
 
         # Create a new Business instance
-        Business.objects.create(
+        business = Business.objects.create(
             name=company_name,
             icon=f'uploaded_icons/{icon_name}',
             employee_file=f'uploaded_excel/{employee_file_name}',
             user=request.user
         )
 
-        # Pass the uploaded employee file path to the process_excel function
+        # Process the Excel file and get the parsed data
         employee_file_path = excel_fs.path(employee_file_name)
-        return process_excel(request, employee_file_path)
+        parsed_data = process_excel(request, employee_file_path)
+
+        # Render the review template with all necessary context
+        return render(request, 'review_business_data.html', {
+            'company_name': company_name,
+            'icon_name': icon_name,
+            'data': parsed_data,  # Pass the parsed data as 'data'
+            'business_id': business.id
+        })
 
     return render(request, 'add_business.html')
 
@@ -1041,7 +1139,6 @@ def business_members_view(request, business_id):
         'users': member_details
     }
     return render(request, 'member_detail.html', context)
-<<<<<<< HEAD
 
 # Function to change user role
 @login_required
@@ -1092,5 +1189,40 @@ def reset_password(request):
     else:
         form = PasswordChangeForm(request.user)
     return render(request, 'reset_password.html', {'form': form})
-=======
->>>>>>> b7ad2d4592c911646426d5433b7d797b74b404ff
+
+
+
+@login_required
+def process_business_data(request):
+    if request.method == 'POST':
+        try:
+            company_name = request.POST.get('company_name')
+            icon_name = request.POST.get('icon_name')
+            business_id = request.POST.get('business_id')
+
+            # Get the business instance
+            business = Business.objects.get(id=business_id)
+            
+            # Get the employee file path from the business instance
+            employee_file_path = os.path.join(settings.MEDIA_ROOT, business.employee_file.name)
+
+            print(f"File path: {employee_file_path}")  # Debug print
+
+            # Pass the business instance to create_accounts_from_excel
+            create_accounts_from_excel(employee_file_path, business)
+
+            # Update business details
+            business.name = company_name
+            business.icon = f'uploaded_icons/{icon_name}'
+            business.save()
+
+            messages.success(request, "Business and member data added successfully!")
+            return redirect('dashboard')
+
+        except Exception as e:
+            print(f"Error processing business data: {str(e)}")  # For debugging
+            print(f"File exists: {os.path.exists(employee_file_path)}")  # Debug print
+            messages.error(request, f"Error processing data: {str(e)}")
+            return redirect('add_business')
+
+    return redirect('add_business')
