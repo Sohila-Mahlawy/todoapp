@@ -36,7 +36,7 @@ class CustomUser(AbstractUser):
 
 class MemberProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="profile")
-    job_description = models.TextField()
+    job_description = models.TextField(default='No job description')
     role = models.TextField()
 # Model for unlogged user tasks
 class UnloggedUserTask(models.Model):
@@ -74,8 +74,6 @@ class ProUserTask(models.Model):
     def __str__(self):
         return self.task_name
 
-
-
 class Project(models.Model):
     name = models.CharField(max_length=255)
     created_by = models.ForeignKey(
@@ -91,7 +89,6 @@ class Project(models.Model):
     # Optional utility method to retrieve all tasks
     def get_tasks(self):
         return self.tasks.all()
-
 
 # Model for task feedback
 class TaskFeedback(models.Model):
@@ -120,8 +117,6 @@ class Invitation(models.Model):
     def __str__(self):
         return f"Invitation to {self.email} for {self.project} as {self.role}"
 
-
-
 class SubscriptionOrder(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     payment_status = models.CharField(
@@ -134,14 +129,14 @@ class SubscriptionOrder(models.Model):
     amount_cents = models.PositiveIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-
 class Business(models.Model):
     name = models.CharField(max_length=255)
     icon = models.ImageField(upload_to='uploaded_icons/')
     employee_file = models.FileField(upload_to='employee_files/')
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='businesses')
     members = models.ManyToManyField(CustomUser, related_name='member_of_businesses')
-
+    category = models.CharField(max_length=200, null=True)
+    
 class UserProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     status = models.CharField(max_length=10, default='Deactivfated')  # 'Activated' or 'Deactivated'
@@ -161,3 +156,19 @@ def save_user_profile(sender, instance, **kwargs):
         instance.userprofile.save()
     except UserProfile.DoesNotExist:
         UserProfile.objects.create(user=instance)
+
+class CallCenter(models.Model):
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='call_centers')
+    zip_file = models.FileField(upload_to='call_center_zips/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Call Center for {self.business.name}"
+
+class FinanceRecord(models.Model):
+    business = models.ForeignKey(Business, on_delete=models.CASCADE)
+    sold_piece = models.CharField(max_length=255)
+    sold_to = models.CharField(max_length=255)
+    date = models.DateField()
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    paid_price = models.DecimalField(max_digits=10, decimal_places=2)

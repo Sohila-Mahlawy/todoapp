@@ -1,0 +1,44 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Dashboard"
+msgstr "لوحة التحكم"
+
+msgid "Tasks"
+msgstr "المهام"
+
+msgid "Create Task"
+msgstr "إنشاء مهمة"
+
+msgid "Create Project"
+msgstr "إنشاء مشروع"
+
+msgid "Projects"
+msgstr "المشاريع"
+
+msgid "Subscribe Pro"
+msgstr "اشترك برو"
+
+msgid "Add Business"
+msgstr "إضافة عمل"
+
+msgid "Admin Dashboard"
+msgstr "لوحة تحكم المشرف"
+
+msgid "Welcome"
+msgstr "مرحباً"
+
+msgid "Love to see you back"
+msgstr "يسعدنا رؤيتك مجدداً"
+
+msgid "This is your main dashboard where you can see an overview of everything."
+msgstr "هذه هي لوحة التحكم الرئيسية حيث يمكنك رؤية نظرة عامة على كل شيء."
+
+msgid "View and manage all your tasks here."
+msgstr "عرض وإدارة جميع مهامك هنا."
+
+msgid "Create new tasks for your team members."
+msgstr "إنشاء مهام جديدة لأعضاء فريقك."
+
+# Add more translations as needed 

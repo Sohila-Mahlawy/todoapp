@@ -1,0 +1,331 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+      <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Free Bootstrap Admin Template : Binary Admin</title>
+	<!-- BOOTSTRAP STYLES-->
+    <link href="{% static 'bootstrap.css' %}" rel="stylesheet" />
+     <!-- FONTAWESOME STYLES-->
+    <link href="{% static 'font-awesome.css' %}" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+     <!-- MORRIS CHART STYLES-->
+    <link href="{% static 'js/morris/morris-0.4.3.min.css' %}" rel="stylesheet" />
+        <!-- CUSTOM STYLES-->
+    <link href="{% static 'custom.css' %}" rel="stylesheet" />
+     <!-- GOOGLE FONTS-->
+   <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css' />
+
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.min.css">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/themes/introjs-modern.min.css">
+</head>
+<body>
+    <div id="wrapper">
+        <nav class="navbar navbar-default navbar-cls-top " role="navigation" style="margin-bottom: 0">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".sidebar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                {% if business_name is not None %}
+                    <a class="navbar-brand" href="{% url 'dashboard' %}">{{ business_name }}</a>
+                {% else %}
+                    <a class="navbar-brand" href="{% url 'dashboard' %}">Task Manager</a>
+                {% endif %}
+            </div>
+  <div style="color: white; padding: 15px 50px 5px 50px; float: right; font-size: 16px;" class="navbar-right">
+    <button onclick="startTutorial()" class="btn btn-info square-btn-adjust" style="margin-right: 10px;">
+        <i class="fa fa-question-circle"></i> Start Tutorial
+    </button>
+    {% if user.is_authenticated %}
+        <a href="/logout" class="btn btn-danger square-btn-adjust">Logout</a>
+    {% else %}
+        <a href="/login" class="btn btn-danger square-btn-adjust" style="margin-right: 10px;">Login</a>
+        <a href="/register" class="btn btn-danger square-btn-adjust">Register</a>
+    {% endif %}
+</div>
+        </nav>   
+           <!-- /. NAV TOP  -->
+                <nav class="navbar-default navbar-side" role="navigation">
+            <div class="sidebar-collapse">
+                <ul class="nav" id="main-menu">
+				<li class="text-center">
+                    <div class="business-header">
+                        {% if user_business_image %}
+                            <img src="{{ user_business_image }}" alt="{{ business_name }}">
+                        {% else %}
+                            <img src="{% static 'img/netfull.png' %}" class="user-image img-responsive" alt="Default Business Icon">
+                        {% endif %}
+                    </div>
+                    
+                    
+				</li>
+				
+                    <li>
+                        <a class="active-menu" href="{% url 'dashboard' %}" data-intro="This is your main dashboard where you can see an overview of everything." data-step="2"><i class="fa fa-dashboard fa-3x"></i> Dashboard</a>
+                    </li>
+                    
+                    <li>
+                        <a href="{% url 'user_tasks_view' %}" data-intro="View and manage all your tasks here." data-step="3"><i class="fa fa-tasks fa-3x"></i> Tasks</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'create_task' %}" data-intro="Create new tasks for your team members." data-step="4"><i class="fa fa-plus fa-3x"></i> Create Task</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'create_project' %}"><i class="fa fa-plus-circle fa-3x"></i> Create Project</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'user_projects_view' %}" data-intro="Access all your projects and their details." data-step="5"><i class="fa fa-briefcase fa-3x"></i> Projects</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'subscribe_pro' %}"><i class="fa fa-briefcase fa-3x"></i> Subscripe Pro</a>
+                    </li>
+                    <!-- Add Business button for Pro users only -->
+                    {% if is_pro_user %}
+                    <li>
+                        <a href="{% url 'add_business' %}"><i class="fa fa-building fa-3x"></i> Add Business</a>
+                    </li>
+                    {% endif %}
+                    {{ edit_1 }}
+                    
+					                   
+                    
+                               
+                            </li>
+                        </ul>
+                     
+                </ul>
+               
+            </div>
+            
+        </nav>  
+        <!-- /. NAV SIDE  -->
+        <div id="page-wrapper" >
+            <div id="page-inner">
+                <div class="row">
+                    <div class="col-md-12">
+                     <h2>Admin Dashboard</h2>   
+                        <h5>Welcome {{user.username}} , Love to see you back. </h5>
+                    </div>
+                </div>              
+                <h1>Members of {{ business.name }}</h1>
+    
+                {% if members %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Job Description</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in members %}
+                            <tr>
+                                <td>{{ member.name }}</td>
+                                <td>{{ member.email }}</td>
+                                <td>{{ member.role }}</td>
+                                <td>{{ member.job_description }}</td>
+                                <td>{{ member.status }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No members found for this business.</p>
+                {% endif %}
+                
+                <a href="{% url 'dashboard' %}">Back to Dashboard</a>
+
+
+<!-- footer -->
+<style>
+    /* Footer styling */
+    footer {
+      background-color: #222; /* Dark background color */
+      color: #ecf0f1; /* Light text color for contrast */
+      padding: 40px 0; /* Increased padding for a taller footer */
+      font-family: Arial, sans-serif;
+    }
+  
+    footer .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 15px;
+    }
+  
+    footer .social-icons {
+      list-style: none;
+      padding: 0;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+  
+    footer .social-icons li {
+      display: inline-block;
+      margin-right: 15px;
+    }
+  
+    footer .social-icons a {
+      color: #ecf0f1; /* Light color for text */
+      text-decoration: none;
+      font-size: 18px;
+      transition: color 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+    }
+  
+    footer .social-icons a i {
+      margin-right: 8px; /* Space between icon and text */
+      font-size: 20px; /* Icon size */
+    }
+  
+    footer .social-icons a:hover {
+      color: #3498db; /* Accent color (blue) on hover */
+    }
+  
+    footer .copyright-text {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  
+    footer .copyright-text p {
+      margin: 0;
+      color: #ecf0f1;
+    }
+  </style>
+
+<footer>
+    <footer>
+        <div class="container">
+          <div class="row">
+            <div class="col-lg-12">
+              <ul class="social-icons">
+                <li><a href="https://www.facebook.com/profile.php?id=61561751296406"><i class="fab fa-facebook"></i> Facebook</a></li>
+                <li><a href="https://www.instagram.com/netfull1/"><i class="fab fa-instagram"></i> Instagram</a></li>
+              </ul>
+            </div>
+            <div class="col-lg-12">
+              <div class="copyright-text">
+                <p>Made By Net Full</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+<!-- footer ends -->
+
+
+
+    <!-- SCRIPTS -AT THE BOTOM TO REDUCE THE LOAD TIME-->
+    <!-- JQUERY SCRIPTS -->
+    <script src="../static/js/jquery-1.10.2.js"></script>
+      <!-- BOOTSTRAP SCRIPTS -->
+    <script src="../static/js/bootstrap.min.js"></script>
+    <!-- METISMENU SCRIPTS -->
+    <script src="../static/js/jquery.metisMenu.js"></script>
+     <!-- MORRIS CHART SCRIPTS -->
+     <script src="../static/js/morris/raphael-2.1.0.min.js"></script>
+    <script src="../static/js/morris/morris.js"></script>
+      <!-- CUSTOM SCRIPTS -->
+    <script src="../static/js/custom.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script>
+    // Wait for document to be fully loaded
+    $(document).ready(function() {
+        console.log('Document ready');
+        // Check if tutorial has been shown
+        if (!localStorage.getItem('tutorialShown')) {
+            console.log('Showing tutorial modal');
+            setTimeout(function() {
+                $('#tutorialModal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            }, 1000); // Delay of 1 second
+        }
+    });
+
+    function startTutorialFromModal() {
+        console.log('Starting tutorial from modal');
+        $('#tutorialModal').modal('hide');
+        setTimeout(startTutorial, 500);
+    }
+
+    function startTutorial() {
+        console.log('Starting tutorial');
+        try {
+            const tour = introJs().setOptions({
+                steps: [
+                    {
+                        title: 'Welcome',
+                        intro: 'Let\'s take a quick tour of your dashboard!'
+                    },
+                    {
+                        element: '.navbar-brand',
+                        intro: 'This shows your business name.',
+                        position: 'bottom'
+                    },
+                    {
+                        element: 'a[href="{% url "dashboard" %}"]',
+                        intro: 'This is your main dashboard where you can see an overview of everything.',
+                        position: 'right'
+                    },
+                    {
+                        element: 'a[href="{% url "user_tasks_view" %}"]',
+                        intro: 'View and manage all your tasks here.',
+                        position: 'right'
+                    },
+                    {
+                        element: 'a[href="{% url "create_task" %}"]',
+                        intro: 'Create new tasks for your team members.',
+                        position: 'right'
+                    },
+                    {
+                        element: 'a[href="{% url "user_projects_view" %}"]',
+                        intro: 'Access all your projects and their details.',
+                        position: 'right'
+                    },
+                    {
+                        title: 'Done!',
+                        intro: 'You\'re all set to start using the dashboard!'
+                    }
+                ],
+                showProgress: true,
+                showBullets: true,
+                exitOnOverlayClick: false,
+                exitOnEsc: false,
+                showStepNumbers: true,
+                doneLabel: 'Finish'
+            });
+
+            tour.start();
+            
+            tour.oncomplete(function() {
+                localStorage.setItem('tutorialShown', 'true');
+            });
+
+            tour.onexit(function() {
+                localStorage.setItem('tutorialShown', 'true');
+            });
+
+        } catch (error) {
+            console.error('Error starting tutorial:', error);
+        }
+    }
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
+   
+</body>
+</html>

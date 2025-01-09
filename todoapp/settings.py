@@ -129,7 +129,7 @@ STATIC_URL = '/static/'
 
 # Add both the base static directory and the welcome/static directory
 STATICFILES_DIRS = [
-    BASE_DIR / "static",  # Default static directory
+    BASE_DIR / "static",  # Ensure this path is correct
     BASE_DIR / "welcome" / "static",  # Explicitly add welcome/static directory
 ]
 
@@ -155,3 +155,9 @@ ALLOWED_HOSTS = ['netfull.site', '.netfull.site','127.0.0.1']
 
 ROOT_HOSTCONF = 'todoapp.hosts'
 DEFAULT_HOST = 'www'
+
+# Maximum size in bytes that will be read from an uploaded file before streaming to storage
+FILE_UPLOAD_MAX_MEMORY_SIZE = 512 * 1024  # 512 KB
+
+# Maximum size in bytes of POST data that will be read before streaming
+DATA_UPLOAD_MAX_MEMORY_SIZE = 512 * 1024  # 512 KB

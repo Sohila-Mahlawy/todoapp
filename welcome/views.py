@@ -1,12 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from .models import UnloggedUserTask, LoggedUserTask, ProUserTask, Project, TaskFeedback, Invitation,CustomUser,SubscriptionOrder,Business, UserProfile
+from .models import UnloggedUserTask, LoggedUserTask, ProUserTask, Project, TaskFeedback, Invitation,CustomUser,SubscriptionOrder,Business,FinanceRecord, UserProfile
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate ,logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
-from .forms import CustomUserCreationForm,ProjectForm
+from .forms import CustomUserCreationForm,ProjectForm, CallCenterForm
 from datetime import datetime, timedelta
 import uuid
 from django.urls import reverse
@@ -1054,7 +1054,7 @@ def add_business(request):
         company_name = request.POST.get('company_name')
         icon = request.FILES['icon']
         employee_file = request.FILES['employee_file']
-
+        category = request.POST.get('category')
         # Save the icon to the 'uploaded_icons' directory
         icon_fs = FileSystemStorage(location='media/uploaded_icons')
         icon_name = icon_fs.save(icon.name, icon)
@@ -1068,7 +1068,8 @@ def add_business(request):
             name=company_name,
             icon=f'uploaded_icons/{icon_name}',
             employee_file=f'uploaded_excel/{employee_file_name}',
-            user=request.user
+            user=request.user,
+            category=category
         )
 
         # Process the Excel file and get the parsed data
@@ -1092,24 +1093,24 @@ def business_members_view(request, business_id):
     View to render members of a specific business.
     """
     business = get_object_or_404(Business, id=business_id)
-    members = business.members.all()
+    members = business.members.all()  # Get all members associated with the business
 
     # Collect member details
     member_details = []
     for member in members:
-        profile = getattr(member, 'profile', None)
         member_details.append({
-            'name': f"{member.first_name} {member.last_name}",
+            'name': member.username,  # Assuming you want to show the username
             'email': member.email,
-            'password': member.password,  # Encrypted, use for reference only
-            'role': profile.role if profile else 'No role assigned'
+            'role': member.role,  # Assuming 'role' is a field in CustomUser
+            'job_description': member.profile.job_description if hasattr(member, 'profile') else 'No job description',  # Accessing profile details
+            'status': member.profile.status if hasattr(member, 'profile') else 'No status',  # Accessing profile status
         })
 
     context = {
         'business': business,
-        'users': member_details
+        'members': member_details
     }
-    return render(request, 'member_detail.html', context)
+    return render(request, 'business_members.html', context)
 
 # Function to change user role
 @login_required
@@ -1165,6 +1166,7 @@ def reset_password(request):
 
 @login_required
 def process_business_data(request):
+
     if request.method == 'POST':
         try:
             business_id = request.POST.get('business_id')
@@ -1194,3 +1196,87 @@ def process_business_data(request):
             return redirect('add_business')
 
     return redirect('add_business')
+
+
+@login_required
+def member_detail(request, member_id):
+    # Get the member object
+    member = get_object_or_404(CustomUser, id=member_id)
+    
+    # Check if the logged-in user owns the business the member belongs to
+    if not member.member_of_businesses.filter(user=request.user).exists():
+        return HttpResponseForbidden("You are not authorized to view this page.")
+    
+    # Render the member detail template
+    return render(request, 'member_detail.html', {'member': member})
+
+@login_required
+def user_detail(request, user_id):
+    user = get_object_or_404(CustomUser, id=user_id)
+    return render(request, 'user_detail.html', {'user': user})
+
+@login_required
+def upload_call_center(request):
+    if request.method == 'POST':
+        form = CallCenterForm(request.POST, request.FILES)
+        if form.is_valid():
+            # Automatically set the business to the user's first business
+            business = get_object_or_404(Business, user=request.user)
+            call_center = form.save(commit=False)  # Do not save yet
+            call_center.business = business  # Set the business
+            call_center.save()  # Now save the instance
+            return redirect('dashboard_view')  # Replace with your success URL
+    else:
+        form = CallCenterForm()
+    return render(request, 'upload_call_center.html', {'form': form})
+
+import re
+@login_required
+def upload_finance(request):
+    if request.method == 'POST' and request.FILES['excel_file']:
+        excel_file = request.FILES['excel_file']
+        df = pd.read_excel(excel_file)
+
+        # Retrieve the Business instance associated with the logged-in user
+        try:
+            business = Business.objects.get(user=request.user)
+        except Business.DoesNotExist:
+            return render(request, 'upload_call_center.html', {'error': 'No business associated with this user.'})
+
+        # Assuming the Excel file has columns: 'Sold Piece', 'Sold To', 'Date', 'Total Price', 'Paid Price'
+        for index, row in df.iterrows():
+            try:
+                # Convert the date to the correct format
+                date_str = row['Date']
+                date_obj = datetime.strptime(date_str, '%m/%d/%Y').date()  # Adjust the format as needed
+
+                # Clean and convert price fields to decimal
+                total_price = float(re.sub(r'[^\d.]', '', str(row['Total Price'])))
+                paid_price = float(re.sub(r'[^\d.]', '', str(row['Paid Price'])))
+
+                FinanceRecord.objects.create(
+                    business=business,
+                    sold_piece=row['Sold Piece'],
+                    sold_to=row['Sold To'],
+                    date=date_obj,
+                    total_price=total_price,
+                    paid_price=paid_price
+                )
+            except (ValueError, TypeError) as e:
+                # Handle conversion errors
+                return render(request, 'upload_finacne.html', {'error': f'Error in row {index + 1}: {e}'})
+
+        return redirect(reverse('dashboard'))
+
+    return render(request, 'upload_finance.html')
+
+@login_required
+def finance_records_list(request):
+    # Retrieve all finance records for the logged-in user's business
+    try:
+        business = Business.objects.get(user=request.user)
+        finance_records = FinanceRecord.objects.filter(business=business)
+    except Business.DoesNotExist:
+        finance_records = []
+
+    return render(request, 'finance_records_list.html', {'finance_records': finance_records})

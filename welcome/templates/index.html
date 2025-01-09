@@ -43,6 +43,7 @@
     <button onclick="startTutorial()" class="btn btn-info square-btn-adjust" style="margin-right: 10px;">
         <i class="fa fa-question-circle"></i> Start Tutorial
     </button>
+    <a href="{% url 'upload_call_center' %}" class="btn btn-primary">Upload Call Center ZIP</a>
     {% if user.is_authenticated %}
         <a href="/logout" class="btn btn-danger square-btn-adjust">Logout</a>
     {% else %}
@@ -196,7 +197,11 @@
                                  <tbody>
                                      {% for member in user_members %}
                                      <tr>
-                                         <td>{{ member.username }}</td>
+                                        <td>
+                                            <a href="{% url 'member_detail' member.id %}">
+                                                {{ member.username }}
+                                            </a>
+                                        </td>
                                          <td>{{ member.email }}</td>
                                          <td>{{ member.role }}</td>
                                          <td>
@@ -508,4 +513,4 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
    
 </body>
-</html>
+</html>.
