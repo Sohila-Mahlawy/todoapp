@@ -115,7 +115,7 @@
                     </div>
                 </div>              
                 <h1>Members of {{ business.name }}</h1>
-    
+
                 {% if members %}
                     <table>
                         <thead>
@@ -143,10 +143,68 @@
                     <p>No members found for this business.</p>
                 {% endif %}
                 
-                <a href="{% url 'dashboard' %}">Back to Dashboard</a>
+                <a  class="back" href="{% url 'dashboard' %}">Back to Dashboard</a>
 
 
 <!-- footer -->
+<style>
+    /* Existing styles */
+
+    /* Table styles */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background-color: #fff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    table th,
+    table td {
+        padding: 12px 15px;
+        text-align: left;
+    }
+
+    table th {
+        background-color: #4caf50; /* Green header */
+        color: white;
+        font-weight: bold;
+    }
+
+    table tr {
+        border-bottom: 1px solid #ddd;
+    }
+
+    table tr:nth-child(even) {
+        background-color: #f9f9f9; /* Alternate row color */
+    }
+
+    table tr:hover {
+        background-color: #f1f1f1; /* Hover effect */
+    }
+
+    table td {
+        color: #333; /* Dark text for better readability */
+    }
+
+    /* Style for the "Back to Dashboard" link */
+    .back {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #2196f3; /* Blue */
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: background-color 0.3s ease;
+    }
+
+    a:hover {
+        background-color: #1976d2; /* Darker blue on hover */
+    }
+</style>
 <style>
     /* Footer styling */
     footer {
