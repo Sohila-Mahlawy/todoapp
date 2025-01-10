@@ -56,4 +56,5 @@ urlpatterns = [
     path('upload_call_center/', views.upload_call_center, name='upload_call_center'),
     path('upload_finance/', views.upload_finance, name='upload_finance'),
     path('finance_records/', views.finance_records_list, name='finance_records_list'),
+    path("complain/", views.submit_complaint, name="submit_complaint"),
 ] +static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

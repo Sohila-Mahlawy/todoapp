@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from .models import UnloggedUserTask, LoggedUserTask, ProUserTask, Project, TaskFeedback, Invitation,CustomUser,SubscriptionOrder,Business,FinanceRecord, UserProfile
+from .models import UnloggedUserTask, Complaint,LoggedUserTask, ProUserTask, Project, TaskFeedback, Invitation,CustomUser,SubscriptionOrder,Business,FinanceRecord, UserProfile
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate ,logout
@@ -21,7 +21,7 @@ from django.core.files.storage import FileSystemStorage
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from threading import Thread
-
+from django.core.exceptions import PermissionDenied
 # Function to handle user registration
 def register_view(request):
     if request.method == 'POST':
@@ -1280,3 +1280,52 @@ def finance_records_list(request):
         finance_records = []
 
     return render(request, 'finance_records_list.html', {'finance_records': finance_records})
+
+import base64
+from django.core.files.base import ContentFile
+
+@login_required
+def submit_complaint(request):
+    user = request.user
+
+    # Ensure the user owns a business
+    try:
+        business = user.businesses.first()  # Get the first owned business
+        if not business:
+            raise PermissionDenied("You do not own a business.")
+    except Business.DoesNotExist:
+        raise PermissionDenied("You do not own a business.")
+
+    if request.method == "POST":
+        text = request.POST.get("text")
+        voice_base64 = request.POST.get("voice")
+
+        # Validate inputs
+        if not text and not voice_base64:
+            return render(request, 'complaints/submit_complaint.html', {
+                "error": "You must provide either text or voice input."
+            })
+        if text and voice_base64:
+            return render(request, 'complaints/submit_complaint.html', {
+                "error": "You can only provide one input: text or voice."
+            })
+
+        # Decode and save the voice file if provided
+        voice_file = None
+        if voice_base64:
+            format, audio_str = voice_base64.split(';base64,')
+            ext = format.split('/')[-1]
+            voice_file = ContentFile(base64.b64decode(audio_str), name=f"complaint_{user.id}.{ext}")
+
+        # Save the complaint
+        Complaint.objects.create(
+            business=business,
+            user=user,
+            text=text,
+            voice=voice_file,
+        )
+
+        # Redirect to the desired URL after submission
+        return redirect('http://127.0.0.1:8000/')
+
+    return render(request, 'submit_complaint.html')
