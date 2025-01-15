@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Project Management</title>
+</head>
+<body>
+    <h1>Project Management Assistant</h1>
+    <p>Business Name: {{ business.name }}</p> <!-- Display business name -->
+
+    <form method="POST" action="{% url 'api' business.id %}">
+        {% csrf_token %}
+
+        <label for="project_description">Project Description:</label>
+        <textarea id="project_description" name="project_description" required></textarea><br>
+
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>

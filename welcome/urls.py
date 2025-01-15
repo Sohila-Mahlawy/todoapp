@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+    path('api/<int:business_id>/', views.api, name='api'),
     # Task-related URLs
     path('create-task/', views.create_task, name='create_task'),
 

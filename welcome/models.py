@@ -38,6 +38,12 @@ class MemberProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="profile")
     job_description = models.TextField(default='No job description')
     role = models.TextField()
+    start_date = models.DateField(null=True, blank=True)
+    qualifications = models.TextField(null=True, blank=True)
+    comments = models.TextField(null=True, blank=True)
+    penalties = models.TextField(null=True, blank=True)
+    section = models.CharField(max_length=255, null=True, blank=True)
+
 # Model for unlogged user tasks
 class UnloggedUserTask(models.Model):
     ip_address = models.GenericIPAddressField()
@@ -183,3 +189,11 @@ class Complaint(models.Model):
 
     def __str__(self):
         return f"Complaint from {self.user.email} for {self.business.name}"
+
+class ProjectResult(models.Model):
+    business_name = models.CharField(max_length=255)
+    tasks_and_assignments = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Result for {self.business_name} on {self.created_at}"

@@ -22,6 +22,63 @@
 
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.min.css">
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/themes/introjs-modern.min.css">
+
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/i18next/22.5.0/i18next.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-i18next/2.1.0/jquery-i18next.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/i18next-http-backend/2.2.2/i18next-http-backend.min.js"></script>
+
+   <style>
+    /* RTL Layout Styles */
+    body[dir="rtl"] .navbar-side {
+        right: 0;
+        left: auto;
+    }
+
+    body[dir="rtl"] #page-wrapper {
+        margin: 0 260px 0 0;
+    }
+
+    body[dir="rtl"] .sidebar-collapse {
+        right: 0;
+        left: auto;
+    }
+
+    body[dir="rtl"] .nav {
+        padding-right: 0;
+    }
+
+    body[dir="rtl"] .text-box {
+        text-align: right;
+    }
+
+    body[dir="rtl"] .navbar-header {
+        float: right;
+    }
+
+    body[dir="rtl"] .navbar-right {
+        float: left !important;
+        margin-left: 15px;
+    }
+
+    /* LTR Layout Reset */
+    body[dir="ltr"] .navbar-side {
+        left: 0;
+        right: auto;
+    }
+
+    body[dir="ltr"] #page-wrapper {
+        margin: 0 0 0 260px;
+    }
+
+    body[dir="ltr"] .navbar-header {
+        float: left;
+    }
+
+    body[dir="ltr"] .navbar-right {
+        float: right !important;
+        margin-right: 15px;
+    }
+</style>
 </head>
 <body>
     <div id="wrapper">
@@ -41,15 +98,22 @@
             </div>
   <div style="color: white; padding: 15px 50px 5px 50px; float: right; font-size: 16px;" class="navbar-right">
     <button onclick="startTutorial()" class="btn btn-info square-btn-adjust" style="margin-right: 10px;">
-        <i class="fa fa-question-circle"></i> Start Tutorial
+        <i class="fa fa-question-circle"></i> <span data-i18n="Start Tutorial">Start Tutorial</span>
     </button>
-    <a href="{% url 'upload_call_center' %}" class="btn btn-primary">Upload Call Center ZIP</a>
+    <a href="{% url 'upload_call_center' %}" class="btn btn-primary">
+        <span data-i18n="Upload Call Center ZIP">Upload Call Center ZIP</span>
+    </a>
     {% if user.is_authenticated %}
-        <a href="/logout" class="btn btn-danger square-btn-adjust">Logout</a>
+        <a href="/logout" class="btn btn-danger square-btn-adjust">
+            <span data-i18n="Logout">Logout</span>
+        </a>
     {% else %}
         <a href="/login" class="btn btn-danger square-btn-adjust" style="margin-right: 10px;">Login</a>
         <a href="/register" class="btn btn-danger square-btn-adjust">Register</a>
     {% endif %}
+    <button onclick="toggleLanguage()" class="btn btn-info square-btn-adjust" style="margin-right: 10px;">
+        <i class="fa fa-language"></i> <span id="langBtn">عربي</span>
+    </button>
 </div>
         </nav>   
            <!-- /. NAV TOP  -->
@@ -69,28 +133,28 @@
 				</li>
 				
                     <li>
-                        <a class="active-menu" href="{% url 'dashboard' %}" data-intro="This is your main dashboard where you can see an overview of everything." data-step="2"><i class="fa fa-dashboard fa-3x"></i> Dashboard</a>
+                        <a class="active-menu" href="{% url 'dashboard' %}" data-intro="This is your main dashboard where you can see an overview of everything." data-step="2"><i class="fa fa-dashboard fa-3x"></i> <span data-i18n="Dashboard">Dashboard</span></a>
                     </li>
                     
                     <li>
-                        <a href="{% url 'user_tasks_view' %}" data-intro="View and manage all your tasks here." data-step="3"><i class="fa fa-tasks fa-3x"></i> Tasks</a>
+                        <a href="{% url 'user_tasks_view' %}" data-intro="View and manage all your tasks here." data-step="3"><i class="fa fa-tasks fa-3x"></i> <span data-i18n="Tasks">Tasks</span></a>
                     </li>
                     <li>
-                        <a href="{% url 'create_task' %}" data-intro="Create new tasks for your team members." data-step="4"><i class="fa fa-plus fa-3x"></i> Create Task</a>
+                        <a href="{% url 'create_task' %}" data-intro="Create new tasks for your team members." data-step="4"><i class="fa fa-plus fa-3x"></i> <span data-i18n="Create Task">Create Task</span></a>
                     </li>
                     <li>
-                        <a href="{% url 'create_project' %}"><i class="fa fa-plus-circle fa-3x"></i> Create Project</a>
+                        <a href="{% url 'create_project' %}"><i class="fa fa-plus-circle fa-3x"></i> <span data-i18n="Create Project">Create Project</span></a>
                     </li>
                     <li>
-                        <a href="{% url 'user_projects_view' %}" data-intro="Access all your projects and their details." data-step="5"><i class="fa fa-briefcase fa-3x"></i> Projects</a>
+                        <a href="{% url 'user_projects_view' %}" data-intro="Access all your projects and their details." data-step="5"><i class="fa fa-briefcase fa-3x"></i> <span data-i18n="Projects">Projects</span></a>
                     </li>
                     <li>
-                        <a href="{% url 'subscribe_pro' %}"><i class="fa fa-briefcase fa-3x"></i> Subscripe Pro</a>
+                        <a href="{% url 'subscribe_pro' %}"><i class="fa fa-briefcase fa-3x"></i> <span data-i18n="Subscribe Pro">Subscribe Pro</span></a>
                     </li>
                     <!-- Add Business button for Pro users only -->
                     {% if is_pro_user %}
                     <li>
-                        <a href="{% url 'add_business' %}"><i class="fa fa-building fa-3x"></i> Add Business</a>
+                        <a href="{% url 'add_business' %}"><i class="fa fa-building fa-3x"></i> <span data-i18n="Add Business">Add Business</span></a>
                     </li>
                     {% endif %}
                     {{ edit_1 }}
@@ -111,8 +175,8 @@
             <div id="page-inner">
                 <div class="row">
                     <div class="col-md-12">
-                     <h2>Admin Dashboard</h2>   
-                        <h5>Welcome {{user.username}} , Love to see you back. </h5>
+                     <h2 data-i18n="Admin Dashboard">Admin Dashboard</h2>   
+                        <h5><span data-i18n="Welcome">Welcome</span> {{user.username}}, <span data-i18n="Love to see you back">Love to see you back</span>.</h5>
                     </div>
                 </div>              
                  <!-- /. ROW  -->
@@ -125,8 +189,8 @@
                 </span>
                 <div class="text-box" >
                     <a href="/projects">
-                    <p class="main-text">{{projects.count}} Project</p>
-                    <p class="text-muted">Projects</p>
+                    <p class="main-text"><span>{{projects.count}}</span> <span data-i18n="Project">Project</span></p>
+                    <p class="text-muted" data-i18n="Projects">Projects</p>
                     </a>
                 </div>
              </div>
@@ -139,11 +203,11 @@
                 <div class="text-box" >
                     <a href="/tasks">
                     {% if tasks %}
-                    <p class="main-text">{{task_count}} Tasks</p>
-                    <p class="text-muted">Remaining</p>
+                    <p class="main-text"><span>{{task_count}}</span> <span data-i18n="Tasks">Tasks</span></p>
+                    <p class="text-muted" data-i18n="Remaining">Remaining</p>
                     {% else %}
-                    <p class="main-text">No Task</p>
-                    <p class="text-muted">Remaining</p>
+                    <p class="main-text" data-i18n="No Task">No Task</p>
+                    <p class="text-muted" data-i18n="Remaining">Remaining</p>
                     {% endif %}
                 </a>
 
@@ -186,12 +250,12 @@
                              <table class="table table-striped table-bordered table-hover">
                                  <thead>
                                      <tr>
-                                         <th>Username</th>
-                                         <th>Email</th>
-                                         <th>Role</th>
-                                         <th>Active</th>
-                                         <th>Status</th>
-                                         <th>Action</th>
+                                         <th data-i18n="Username">Username</th>
+                                         <th data-i18n="Email">Email</th>
+                                         <th data-i18n="Role">Role</th>
+                                         <th data-i18n="Active">Active</th>
+                                         <th data-i18n="Status">Status</th>
+                                         <th data-i18n="Action">Action</th>
                                      </tr>
                                  </thead>
                                  <tbody>
@@ -203,32 +267,34 @@
                                             </a>
                                         </td>
                                          <td>{{ member.email }}</td>
-                                         <td>{{ member.role }}</td>
+                                         <td data-i18n="{{ member.role }}">{{ member.role }}</td>
                                          <td>
-                                             <span class="badge {% if member.is_active == 'Activated' %}badge-success{% else %}badge-warning{% endif %}">
+                                             <span class="badge {% if member.is_active == 'Activated' %}badge-success{% else %}badge-warning{% endif %}" 
+                                                   data-i18n="{{ member.is_active }}">
                                                  {{ member.is_active }}
                                              </span>
                                          </td>
                                          <td>
-                                             <span class="badge {% if member.status == 'Logged In' %}badge-success{% else %}badge-danger{% endif %}">
+                                             <span class="badge {% if member.status == 'Logged In' %}badge-success{% else %}badge-danger{% endif %}"
+                                                   data-i18n="{{ member.status }}">
                                                  {{ member.status }}
                                              </span>
                                          </td>
                                          <td>
                                              <form action="{% url 'change_user_role' member.id %}" method="post">
                                                  {% csrf_token %}
-                                                 <select name="role">
-                                                     <option value="team_leader" {% if member.role == 'team_leader' %}selected{% endif %}>Team Leader</option>
-                                                     <option value="product_owner" {% if member.role == 'product_owner' %}selected{% endif %}>Product Owner</option>
-                                                     <option value="programmer" {% if member.role == 'programmer' %}selected{% endif %}>Programmer</option>
+                                                 <select name="role" data-i18n-options="team_leader,product_owner,programmer">
+                                                     <option value="team_leader" data-i18n="Team Leader" {% if member.role == 'team_leader' %}selected{% endif %}>Team Leader</option>
+                                                     <option value="product_owner" data-i18n="Product Owner" {% if member.role == 'product_owner' %}selected{% endif %}>Product Owner</option>
+                                                     <option value="programmer" data-i18n="Programmer" {% if member.role == 'programmer' %}selected{% endif %}>Programmer</option>
                                                  </select>
-                                                 <button type="submit" class="btn btn-primary">Change Role</button>
+                                                 <button type="submit" class="btn btn-primary" data-i18n="Change Role">Change Role</button>
                                              </form>
                                          </td>
                                      </tr>
                                      {% empty %}
                                      <tr>
-                                         <td colspan="6">No members found.</td>
+                                         <td colspan="6" data-i18n="No members found">No members found.</td>
                                      </tr>
                                      {% endfor %}
                                  </tbody>
@@ -511,6 +577,175 @@
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
+<script>
+const translations = {
+    ar: {
+        translation: {
+            "Dashboard": "لوحة التحكم",
+            "Tasks": "المهام",
+            "Create Task": "إنشاء مهمة",
+            "Create Project": "إنشاء مشروع",
+            "Projects": "المشاريع",
+            "Subscribe Pro": "اشترك برو",
+            "Add Business": "إضافة عمل",
+            "Admin Dashboard": "لوحة تحكم المشرف",
+            "Welcome": "مرحباً",
+            "Love to see you back": "يسعدنا رؤيتك مجدداً",
+            "Project": "مشروع",
+            "Remaining": "متبقي",
+            "No Task": "لا توجد مهام",
+            "Logout": "تسجيل خروج",
+            "Login": "تسجيل دخول",
+            "Register": "تسجيل",
+            "Start Tutorial": "بدء الدليل",
+            "Upload Call Center ZIP": "رفع ملف مركز الاتصال",
+            "Your Tasks": "مهامك",
+            "Task Name": "اسم المهمة",
+            "Status": "الحالة",
+            "Upload File": "رفع ملف",
+            "Projects Count": "عدد المشاريع",
+            "Tasks Count": "عدد المهام",
+            "User Business Members": "أعضاء العمل",
+            "Username": "اسم المستخدم",
+            "Email": "البريد الإلكتروني",
+            "Role": "الدور",
+            "Active": "نشط",
+            "Status": "الحالة",
+            "Action": "إجراء",
+            "Change Role": "تغيير الدور",
+            "Team Leader": "قائد الفريق",
+            "Product Owner": "مالك المنتج",
+            "Programmer": "مبرمج",
+            "No members found": "لم يتم العثور على أعضاء",
+            "Your Tasks": "مهامك",
+            "Task Name": "اسم المهمة",
+            "Upload File": "رفع ملف",
+            "Choose file": "اختر ملفاً",
+            "Upload": "رفع",
+            "No tasks available": "لا توجد مهام متاحة",
+            "Activated": "مفعل",
+            "Deactivated": "غير مفعل",
+            "Logged In": "متصل",
+            "Never Logged In": "لم يسجل دخول",
+            "Pending": "قيد الانتظار",
+            "team_leader": "قائد الفريق",
+            "product_owner": "مالك المنتج",
+            "programmer": "مبرمج",
+            "Change Role": "تغيير الدور",
+            "Submit": "إرسال",
+            "Cancel": "إلغاء",
+            "No members found.": "لم يتم العثور على أعضاء.",
+            "No data available": "لا توجد بيانات متاحة",
+            "View Details": "عرض التفاصيل",
+            "Edit": "تعديل",
+            "Delete": "حذف",
+            "Actions": "إجراءات",
+            "Active": "نشط",
+            "Inactive": "غير نشط",
+            "Suspended": "موقوف",
+            "Online": "متصل",
+            "Offline": "غير متصل"
+        }
+    }
+};
+
+// Initialize i18next
+i18next.init({
+    lng: 'en', // default language
+    resources: translations,
+    fallbackLng: 'en',
+});
+
+// Function to toggle language
+function toggleLanguage() {
+    const currentLang = i18next.language;
+    const newLang = currentLang === 'en' ? 'ar' : 'en';
+    
+    // Update button text
+    document.getElementById('langBtn').textContent = newLang === 'en' ? 'عربي' : 'English';
+    
+    // Change text direction and update layout
+    document.body.style.direction = newLang === 'ar' ? 'rtl' : 'ltr';
+    document.body.setAttribute('dir', newLang === 'ar' ? 'rtl' : 'ltr');
+    
+    // Additional layout adjustments for RTL
+    if (newLang === 'ar') {
+        document.querySelectorAll('.fa-3x').forEach(icon => {
+            icon.style.marginLeft = '10px';
+            icon.style.marginRight = '0';
+        });
+    } else {
+        document.querySelectorAll('.fa-3x').forEach(icon => {
+            icon.style.marginRight = '10px';
+            icon.style.marginLeft = '0';
+        });
+    }
+    
+    // Change language and translate
+    i18next.changeLanguage(newLang, (err, t) => {
+        if (err) return console.error('Error loading language:', err);
+        
+        // Translate all elements with data-i18n attribute
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            element.textContent = t(key);
+        });
+
+        // Handle special cases for form elements
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            if (input.hasAttribute('data-i18n-placeholder')) {
+                input.placeholder = t(input.getAttribute('data-i18n-placeholder'));
+            }
+        });
+
+        // Update select options
+        document.querySelectorAll('select[data-i18n-options]').forEach(select => {
+            const options = select.getAttribute('data-i18n-options').split(',');
+            options.forEach(option => {
+                const opt = select.querySelector(`option[value="${option}"]`);
+                if (opt) {
+                    opt.textContent = t(option);
+                }
+            });
+        });
+    });
+}
+
+// Add data-i18n attributes when document loads
+document.addEventListener('DOMContentLoaded', function() {
+    const elementsToTranslate = {
+        'Dashboard': 'a[href="{% url "dashboard" %}"] span',
+        'Tasks': 'a[href="{% url "user_tasks_view" %}"] span',
+        'Create Task': 'a[href="{% url "create_task" %}"] span',
+        'Create Project': 'a[href="{% url "create_project" %}"] span',
+        'Projects': 'a[href="{% url "user_projects_view" %}"] span',
+        'Subscribe Pro': 'a[href="{% url "subscribe_pro" %}"] span',
+        'User Business Members': 'h2:contains("User Business Members")',
+        'Username': 'th:contains("Username")',
+        'Email': 'th:contains("Email")',
+        'Role': 'th:contains("Role")',
+        'Status': 'th:contains("Status")',
+        'Action': 'th:contains("Action")',
+        'Your Tasks': 'h2:contains("Your Tasks")',
+        'Task Name': 'th:contains("Task Name")',
+        'Upload File': 'th:contains("Upload File")',
+        'No tasks available': 'td:contains("No tasks available")',
+        'No members found': 'td:contains("No members found")'
+    };
+
+    // Add data-i18n attributes to all matching elements
+    for (const [key, selector] of Object.entries(elementsToTranslate)) {
+        document.querySelectorAll(selector).forEach(element => {
+            element.setAttribute('data-i18n', key);
+        });
+    }
+
+    // Initialize select elements with translation options
+    document.querySelectorAll('select[name="role"]').forEach(select => {
+        select.setAttribute('data-i18n-options', 'team_leader,product_owner,programmer');
+    });
+});
+</script>
    
 </body>
 </html>.

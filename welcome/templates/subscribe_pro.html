@@ -139,8 +139,12 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="{% url 'dashboard' %}">Task Manager</a> 
-            </div>
+                {% if business_name is not None %}
+                    <a class="navbar-brand" href="{% url 'dashboard' %}">{{ business_name }}</a>
+                {% else %}
+                    <a class="navbar-brand" href="{% url 'dashboard' %}">Task Manager</a>
+                {% endif %}
+                          </div>
             <div style="color: white; padding: 15px 50px 5px 50px; float: right; font-size: 16px;">
               {% if user.is_authenticated %}<a href="/logout" class="btn btn-danger square-btn-adjust">Logout</a>
               {% else %}

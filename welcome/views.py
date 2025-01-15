@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from .models import UnloggedUserTask, Complaint,LoggedUserTask, ProUserTask, Project, TaskFeedback, Invitation,CustomUser,SubscriptionOrder,Business,FinanceRecord, UserProfile
+from .models import UnloggedUserTask, ProjectResult,Complaint,LoggedUserTask, ProUserTask, Project, TaskFeedback, Invitation,CustomUser,SubscriptionOrder,Business,FinanceRecord, UserProfile, MemberProfile
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate ,logout
@@ -22,6 +22,9 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from threading import Thread
 from django.core.exceptions import PermissionDenied
+import pandas as pd
+import os
+
 # Function to handle user registration
 def register_view(request):
     if request.method == 'POST':
@@ -46,6 +49,7 @@ def register_view(request):
         user.save()
 
     return render(request, 'register.html')
+
 # Function to handle user login
 def login_view(request):
     if request.method == 'POST':
@@ -960,6 +964,24 @@ def create_accounts_from_excel(file_path, business):
                         }
                     )
 
+                    # Create or update MemberProfile
+                    try:
+                        MemberProfile.objects.update_or_create(
+                            user=user,
+                            defaults={
+                                'job_description': str(row.get('job_description', '')).strip(),
+                                'role': role,
+                                'start_date': row.get('start_date', None),
+                                'qualifications': str(row.get('qualifications', '')).strip(),
+                                'comments': str(row.get('comments', '')).strip(),
+                                'penalties': str(row.get('penalties', '')).strip(),
+                                'section': str(row.get('section', '')).strip()
+                            }
+                        )
+                        print(f"MemberProfile created/updated for user: {email}")
+                    except Exception as e:
+                        print(f"Error creating MemberProfile for {email}: {e}")
+
                     # Send credentials email
                     send_user_credentials_email(email, password, name)
                     
@@ -1166,7 +1188,6 @@ def reset_password(request):
 
 @login_required
 def process_business_data(request):
-
     if request.method == 'POST':
         try:
             business_id = request.POST.get('business_id')
@@ -1177,8 +1198,26 @@ def process_business_data(request):
             
             print(f"Processing file: {employee_file_path}")  # Debug print
             
-            if not os.path.exists(employee_file_path):
-                raise FileNotFoundError(f"Excel file not found at {employee_file_path}")
+            # Get parsed data with standardized column names from process_excel
+            parsed_data = process_excel(request, employee_file_path)
+
+            for row in parsed_data:
+                # Create username from Name field
+                name = row.get('Name', '').strip()
+                email = row.get('Email', '').strip()
+                
+                if not name or not email:
+                    continue  # Skip rows without name or email
+
+                # Create or get the user
+                user, created = CustomUser.objects.get_or_create(
+                    email=email,
+                    defaults={
+                        'username': email.split('@')[0],  # Create username from email
+                        'first_name': name.split()[0] if name else '',
+                        'last_name': ' '.join(name.split()[1:]) if name and ' ' in name else ''
+                    }
+                )
 
             # Create the accounts
             members_data = create_accounts_from_excel(employee_file_path, business)
@@ -1188,6 +1227,10 @@ def process_business_data(request):
             else:
                 messages.warning(request, "No new user accounts were created.")
 
+            # Add user to business members
+            business.members.add(user)
+
+            messages.success(request, f"Successfully processed business data for {business.name}!")
             return redirect('dashboard')
 
         except Exception as e:
@@ -1329,3 +1372,103 @@ def submit_complaint(request):
         return redirect('http://127.0.0.1:8000/')
 
     return render(request, 'submit_complaint.html')
+
+
+from openai import OpenAI
+
+# Home page with form
+client = OpenAI(api_key="sk-6893bfcc17c640ec8c89de05ac8e2c7b", base_url="https://api.deepseek.com")
+
+def api(request, business_id):
+    if request.method == "POST":
+        try:
+            # Get form data
+            project_name = request.POST.get("project_name")
+            project_description = request.POST.get("project_description")
+
+            # Fetch business and validate it exists
+            business = get_object_or_404(Business, id=business_id)
+
+            # Fetch employees with their profiles
+            employees = business.members.all()
+            
+            if not employees:
+                messages.error(request, "No employees found for this business.")
+                return redirect('api_form', business_id=business_id)
+
+            # Prepare employee details with proper formatting
+            employee_details = []
+            for emp in employees:
+                try:
+                    profile = emp.profile
+                    employee_details.append(
+                        f"Name: {emp.get_full_name() or emp.username}\n"
+                        f"Role: {profile.role}\n"
+                        f"Skills: {profile.qualifications}\n"
+                        f"Job Description: {profile.job_description}\n"
+                        "---"
+                    )
+                except MemberProfile.DoesNotExist:
+                    continue
+
+            employee_list = "\n".join(employee_details)
+            print(employee_list)
+            # Detect if the input is in Arabic
+            is_arabic = any("\u0600" <= char <= "\u06FF" for char in project_description)
+
+            # Generate prompt for the model
+            prompt = f"""
+            Project Details:
+            ---------------
+            Name: {project_name}
+            Description: {project_description}
+
+            Available Team Members:
+            ---------------------
+            {employee_list}
+
+            Instructions:
+            1. Analyze the project requirements and break it down into specific tasks
+            2. For each task:
+               - Provide a clear description
+               - Assign it to one of the listed team members
+               - Explain why this team member is the best fit based on their role and skills
+            3. Ensure tasks are distributed fairly based on skills and workload
+            """
+
+            if is_arabic:
+                prompt += "\n\nPlease respond in Arabic."
+
+            # Send prompt to DeepSeek API
+            response = client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {"role": "system", "content": "You are a project management assistant. Use only the provided team members for task assignment."},
+                    {"role": "user", "content": prompt},
+                ],
+                stream=False
+            )
+
+            # Get and save the response
+            tasks_and_assignments = response.choices[0].message.content
+            
+            # Save to database
+            ProjectResult.objects.create(
+                business_name=business.name,
+                tasks_and_assignments=tasks_and_assignments
+            )
+
+
+            return render(request, "result.html", {
+                'tasks_and_assignments': tasks_and_assignments,
+                'project_name': project_name,
+                'business': business
+            })
+
+        except Exception as e:
+            messages.error(request, f"An error occurred: {str(e)}")
+            return redirect('api_form', business_id=business_id)
+
+    # GET request - show the form
+    business = get_object_or_404(Business, id=business_id)
+    return render(request, "api_form.html", {'business': business})
