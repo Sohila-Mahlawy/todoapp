@@ -38,12 +38,6 @@ class MemberProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="profile")
     job_description = models.TextField(default='No job description')
     role = models.TextField()
-    start_date = models.DateField(null=True, blank=True)
-    qualifications = models.TextField(null=True, blank=True)
-    comments = models.TextField(null=True, blank=True)
-    penalties = models.TextField(null=True, blank=True)
-    section = models.CharField(max_length=255, null=True, blank=True)
-
 # Model for unlogged user tasks
 class UnloggedUserTask(models.Model):
     ip_address = models.GenericIPAddressField()
@@ -145,7 +139,7 @@ class Business(models.Model):
     
 class UserProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    status = models.CharField(max_length=10, default='Deactivfated')  # 'Activated' or 'Deactivated'
+    status = models.CharField(max_length=10, default='Deactivated')  # 'Activated' or 'Deactivated'
     logged_in_status = models.CharField(max_length=10, default='Unlogged')  # 'Logged In' or 'Unlogged'
 
     def __str__(self):
@@ -197,3 +191,4 @@ class ProjectResult(models.Model):
 
     def __str__(self):
         return f"Result for {self.business_name} on {self.created_at}"
+

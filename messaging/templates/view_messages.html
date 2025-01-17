@@ -1,0 +1,25 @@
+{% extends "messages_base.html" %}
+
+{% block title %}View Messages{% endblock %}
+
+{% block content %}
+    <h2>Received Messages</h2>
+    <ul>
+        {% for message in received_messages %}
+            <li>
+                <strong>{{ message.subject }}</strong> from {{ message.sender.email }} at {{ message.created_at }}<br>
+                {{ message.body }}
+            </li>
+        {% endfor %}
+    </ul>
+
+    <h2 id="sent">Sent Messages</h2>
+    <ul>
+        {% for message in sent_messages %}
+            <li>
+                <strong>{{ message.subject }}</strong> to {{ message.recipients.all|join:", " }} at {{ message.created_at }}<br>
+                {{ message.body }}
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}

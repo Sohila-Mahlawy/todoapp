@@ -1,0 +1,118 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f1f3f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar a {
+            display: block;
+            color: #fff;
+            background-color: red;
+            text-decoration: none;
+            margin-bottom: 10px;
+            font-size: 16px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .sidebar a:hover {
+            background-color: darkred;
+        }
+        .container {
+            flex: 1;
+            margin: 20px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #202124;
+            border-bottom: 1px solid #dadce0;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="sidebar">
+        <div class="text-center">
+            {% if user_business_image %}
+                <img src="{{ user_business_image }}" alt="{{ member.business_name }}" class="user-image img-responsive" style="max-width: 100px; margin-bottom: 10px;">
+            {% else %}
+                <img src="{% static 'img/netfull.png' %}" class="user-image img-responsive" alt="Default Business Icon" style="max-width: 100px; margin-bottom: 10px;">
+            {% endif %}
+            <h1>{{ member.business_name }}</h1>
+        </div>
+        <a href="{% url 'send_message' %}" class="compose-button">Compose</a>
+        <a href="{% url 'view_messages' %}">Inbox</a>
+        <a href="{% url 'view_messages' %}#sent">Sent Messages</a>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Return to Dashboard</a>
+    </div>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.querySelector('.searchable');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const query = searchInput.value;
+                    fetch(`/search-users/?query=${query}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const datalist = document.getElementById('user-suggestions');
+                            datalist.innerHTML = '';
+                            data.forEach(user => {
+                                const option = document.createElement('option');
+                                option.value = user.email;
+                                datalist.appendChild(option);
+                            });
+                        });
+                });
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

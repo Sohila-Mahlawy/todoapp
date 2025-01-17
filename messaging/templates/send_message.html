@@ -1,0 +1,29 @@
+{% extends "messages_base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Send Message</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="recipients">Recipients:</label>
+            <select id="recipients" name="recipients" class="form-control">
+                {% for user in users %}
+                <option value="{{ user.email }}">{{ user.email }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="id_subject">Subject:</label>
+            {{ form.subject }}
+        </div>
+        <div class="form-group">
+            <label for="id_body">Message:</label>
+            {{ form.body }}
+        </div>
+        <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+</div>
+{% endblock %}
+</body>
+</html>

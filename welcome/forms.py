@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
-from .models import CustomUser,Project,CallCenter
+from .models import CustomUser, Project, CallCenter
 
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
@@ -37,3 +37,5 @@ class CallCenterForm(forms.ModelForm):
             if zip_file.size > max_size:
                 raise ValidationError("Maximum size is 512 KB.")
         return zip_file
+
+

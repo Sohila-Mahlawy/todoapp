@@ -19,5 +19,6 @@ from django.urls import path,include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('welcome.urls')),  # Include calculator app URLs
+    path('', include('welcome.urls')), 
+    path('', include('messaging.urls')),  # Correct import for messaging app URLs
 ]
