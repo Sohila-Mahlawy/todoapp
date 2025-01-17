@@ -122,7 +122,7 @@
                 <ul class="nav" id="main-menu">
 				<li class="text-center">
                     <div class="business-header">
-                        {% if user_business_image %}
+                        {% if user_business_image is not None %}
                             <img src="{{ user_business_image }}" alt="{{ business_name }}">
                         {% else %}
                             <img src="{% static 'img/netfull.png' %}" class="user-image img-responsive" alt="Default Business Icon">

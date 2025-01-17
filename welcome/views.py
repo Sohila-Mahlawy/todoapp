@@ -110,23 +110,21 @@ def dashboard_view(request):
     context = {}
 
     if user.is_authenticated:
-        from businesses.models import Business  # Move the import here
+        from businesses.models import Business
+        business_name = None
+        user_businesses = Business.objects.filter(user=request.user)
+        user_business_image = None
+        user_members = []
+
         if user.subscription_type == 'pro':
             tasks = ProUserTask.objects.filter(user=user).order_by('-created_at')
-            user_businesses = Business.objects.filter(user=request.user)
-            business_name = user_businesses.first().name if user_businesses.exists() else "No Business"
-            user_business_image = user_businesses.first().icon.url if user_businesses.exists() and user_businesses.first().icon else None
-            
-            # Get the members of the first business
             if user_businesses.exists():
                 first_business = user_businesses.first()
                 business_name = first_business.name
                 user_business_image = first_business.icon.url if first_business.icon else None
-                
-                # Get members with their profile information
+
                 user_members = []
                 for member in first_business.members.all():
-                    # Get or create userprofile
                     profile, created = UserProfile.objects.get_or_create(user=member)
                     member_info = {
                         'username': member.username,
@@ -138,11 +136,9 @@ def dashboard_view(request):
                     }
                     user_members.append(member_info)
             else:
-                business_name = "No Business"
                 user_business_image = None
-                user_members = []       
-            # Debugging output
-            print(f"User Members: {list(user_members)}")  # Check the members
+                user_members = []
+            print(f"User Members: {list(user_members)}")
 
         else:
             user_tasks = LoggedUserTask.objects.filter(user=user).order_by('-created_at')
@@ -164,7 +160,7 @@ def dashboard_view(request):
         context['business_name'] = business_name
         context['user_business_image'] = user_business_image
         context['user_businesses'] = user_businesses
-        context['user_members'] = user_members  # Add user members to context
+        context['user_members'] = user_members
         context['has_businesses'] = user_businesses.exists()
 
         return render(request, 'index.html', context)
@@ -180,7 +176,7 @@ def dashboard_view(request):
         context['completed_task_count'] = completed_task_count
 
         return render(request, 'index.html', context)
-
+    
 def user_tasks_view(request):
     """
     Fetch tasks for a user based on their authentication and subscription status
