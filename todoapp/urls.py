@@ -21,4 +21,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('welcome.urls')), 
     path('', include('messaging.urls')),  # Correct import for messaging app URLs
+    path('projects/', include('projects_app.urls')),
+    path('businesses/', include('businesses_app.urls')),
 ]

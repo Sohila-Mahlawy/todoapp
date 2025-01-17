@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CustomUser, ProjectResult, Complaint, UnloggedUserTask, FinanceRecord, LoggedUserTask, ProUserTask, Project, TaskFeedback, Invitation, MemberProfile, Business, CallCenter
+from .models import CustomUser, ProjectResult,UnloggedUserTask, LoggedUserTask, ProUserTask,TaskFeedback,MemberProfile
 from messaging.models import Messages  # Correct import for Messages model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
@@ -12,15 +12,9 @@ class CustomUserAdmin(UserAdmin):
     ordering = ('username',)
 
 admin.site.register(CustomUser, CustomUserAdmin)
-admin.site.register(CallCenter)
 admin.site.register(ProjectResult)
-admin.site.register(FinanceRecord)
-admin.site.register(Complaint)
 admin.site.register(UnloggedUserTask)
 admin.site.register(LoggedUserTask)
 admin.site.register(ProUserTask)
-admin.site.register(Project)
 admin.site.register(TaskFeedback)
-admin.site.register(Invitation)
 admin.site.register(MemberProfile)
-admin.site.register(Business)

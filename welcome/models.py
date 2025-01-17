@@ -74,22 +74,6 @@ class ProUserTask(models.Model):
     def __str__(self):
         return self.task_name
 
-class Project(models.Model):
-    name = models.CharField(max_length=255)
-    created_by = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name='projects'
-    )
-    start_date = models.DateField()
-    end_date = models.DateField()
-    members = models.ManyToManyField(CustomUser, related_name='project_members')
-
-    def __str__(self):
-        return f"Project by {self.created_by.username}"
-
-    # Optional utility method to retrieve all tasks
-    def get_tasks(self):
-        return self.tasks.all()
-
 # Model for task feedback
 class TaskFeedback(models.Model):
     task = models.ForeignKey(ProUserTask, on_delete=models.CASCADE, related_name='feedback')
@@ -99,23 +83,7 @@ class TaskFeedback(models.Model):
     def __str__(self):
         return f"Feedback for {self.task.task_name}"
 
-# Model for invitations
-class Invitation(models.Model):
-    ROLE_CHOICES = [
-        ('team_member', 'Team Member'),
-        ('product_owner', 'Product Owner'),
-    ]
-    team_leader = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='sent_invitations')
-    name = models.CharField(max_length=255)
-    email = models.EmailField()
-    token = models.CharField(max_length=255, unique=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    accepted = models.BooleanField(default=False)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='invitations')
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='team_member')  # Add this field
 
-    def __str__(self):
-        return f"Invitation to {self.email} for {self.project} as {self.role}"
 
 class SubscriptionOrder(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
@@ -128,14 +96,6 @@ class SubscriptionOrder(models.Model):
     payment_url = models.URLField(blank=True, null=True)
     amount_cents = models.PositiveIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
-
-class Business(models.Model):
-    name = models.CharField(max_length=255)
-    icon = models.ImageField(upload_to='uploaded_icons/')
-    employee_file = models.FileField(upload_to='employee_files/')
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='businesses')
-    members = models.ManyToManyField(CustomUser, related_name='member_of_businesses')
-    category = models.CharField(max_length=200, null=True)
     
 class UserProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -156,39 +116,3 @@ def save_user_profile(sender, instance, **kwargs):
         instance.userprofile.save()
     except UserProfile.DoesNotExist:
         UserProfile.objects.create(user=instance)
-
-class CallCenter(models.Model):
-    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='call_centers')
-    zip_file = models.FileField(upload_to='call_center_zips/')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Call Center for {self.business.name}"
-
-class FinanceRecord(models.Model):
-    business = models.ForeignKey(Business, on_delete=models.CASCADE)
-    sold_piece = models.CharField(max_length=255)
-    sold_to = models.CharField(max_length=255)
-    date = models.DateField()
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    paid_price = models.DecimalField(max_digits=10, decimal_places=2)
-
-class Complaint(models.Model):
-    business = models.ForeignKey(Business, on_delete=models.CASCADE)
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    text = models.TextField(blank=True, null=True)
-    voice = models.FileField(upload_to='complaints/', blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-
-    def __str__(self):
-        return f"Complaint from {self.user.email} for {self.business.name}"
-
-class ProjectResult(models.Model):
-    business_name = models.CharField(max_length=255)
-    tasks_and_assignments = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Result for {self.business_name} on {self.created_at}"
-
