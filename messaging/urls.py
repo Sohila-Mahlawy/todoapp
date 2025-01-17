@@ -5,4 +5,6 @@ urlpatterns = [
     path('send_message/', views.send_message, name='send_message'),
     path('view_messages/', views.view_messages, name='view_messages'),
     path('search_users/', views.search_users, name='search_users'),
+    path('autocomplete_users/', views.autocomplete_users, name='autocomplete_users'),
+
 ]
