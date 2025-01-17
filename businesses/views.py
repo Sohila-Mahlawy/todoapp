@@ -18,7 +18,6 @@ from django.core.cache import cache
 import pandas as pd
 import string
 import random
-from .models import CustomUser, MemberProfile
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 import os

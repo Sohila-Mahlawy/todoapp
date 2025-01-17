@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from .models import UnloggedUserTask,LoggedUserTask, ProUserTask,TaskFeedback,CustomUser, SubscriptionOrder, UserProfile
 from projects.models import Project
-from businesses.models import Business
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
@@ -111,6 +110,7 @@ def dashboard_view(request):
     context = {}
 
     if user.is_authenticated:
+        from businesses.models import Business  # Move the import here
         if user.subscription_type == 'pro':
             tasks = ProUserTask.objects.filter(user=user).order_by('-created_at')
             user_businesses = Business.objects.filter(user=request.user)
@@ -554,6 +554,7 @@ def payment_result(request):
 
 @login_required
 def members_dashboard_view(request):
+    from businesses.models import Business
     user = request.user
     user_businesses = Business.objects.filter(members=user)  # Assuming you have a ManyToMany relationship
 

@@ -62,7 +62,7 @@ class ProUserTask(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)  # Task creator
     task_name = models.CharField(max_length=255)
     project = models.ForeignKey(
-        'Project', on_delete=models.CASCADE, null=True, blank=True, related_name='tasks'
+        'projects.Project', on_delete=models.CASCADE, null=True, blank=True, related_name='tasks'
     )  # Related name for reverse querying tasks by project
     assigned_to = models.ForeignKey(
         CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks'

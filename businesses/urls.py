@@ -17,8 +17,4 @@ urlpatterns = [
     path('process_excel/', views.process_excel, name='process_excel'),
     path('get_progress/', views.get_progress, name='get_progress'),
     path('loading/', views.loading_page, name='loading_page'),  # Add the loading page URL
-    path('project/<int:project_id>/invite/', views.invite_team_members, name='invite_team_members'),
-    path('invitation/<uuid:token>/accept/', views.accept_invitation, name='accept_invitation'),
-    path('view-invitations/', views.view_invitations, name='view_invitations'),
-    path('send-invitation/', views.send_invitation, name='send_invitation'),
 ]
