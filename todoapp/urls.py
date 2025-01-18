@@ -23,4 +23,5 @@ urlpatterns = [
     path('', include('messaging.urls')),  # Correct import for messaging app URLs
     path('', include('projects.urls')),
     path('', include('businesses.urls')),
+    path('', include('users.urls'))
 ]

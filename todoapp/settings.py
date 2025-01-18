@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'welcome',
     'messaging',
     'projects',
-    'businesses'
+    'businesses',
+    'users',
 ]
 
 MIDDLEWARE = [

@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from .models import UnloggedUserTask,LoggedUserTask, ProUserTask,TaskFeedback,CustomUser, SubscriptionOrder, UserProfile
+from models import UnloggedUserTask,LoggedUserTask, ProUserTask,TaskFeedback,CustomUser, SubscriptionOrder, UserProfile
 from projects.models import Project
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
@@ -17,81 +17,7 @@ import requests
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 
-# Function to handle user registration
-def register_view(request):
-    if request.method == 'POST':
-        username = request.POST['username']
-        email = request.POST['email']
-        password1 = request.POST['password']
-        password2 = request.POST['confirm_password']
-        
-        if password1 != password2:
-            messages.error(request, "Passwords do not match!")
-            return redirect('register')
-        
-        if CustomUser.objects.filter(username=username).exists():
-            messages.error(request, "Username already exists!")
-            return redirect('register')
-        
-        if CustomUser.objects.filter(email=email).exists():
-            messages.error(request, "Email is already registered!")
-            return redirect('register')
-        
-        user = CustomUser.objects.create_user(username=username, email=email, password=password1)
-        user.save()
 
-    return render(request, 'register.html')
-# Function to handle user login
-def login_view(request):
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(request, username=username, password=password)
-            if user is not None:
-                login(request, user)
-                user.userprofile.logged_in_status = 'Logged In'
-                user.userprofile.save()
-                return redirect('members_dashboard')
-    else:
-        form = AuthenticationForm()
-    return render(request, 'login.html', {'form': form})
-
-def logout_view(request):
-    logout(request)  # Log out the user
-    return redirect('login')  # Redirect to the login page after logout
-
-# Function to create a task for unlogged users
-def create_task(request):
-    if request.method == 'POST':
-        task_name = request.POST.get('task_name')
-
-        if request.user.is_authenticated:
-            # For logged and pro users
-            if request.user.subscription_type == 'pro':
-                # Pro user task creation
-                project_id = request.POST.get('project_id')
-                project = get_object_or_404(Project, id=project_id) if project_id else None
-                file = request.FILES.get('file')
-                task = ProUserTask.objects.create(user=request.user, task_name=task_name, project=project)
-                return redirect('dashboard')
-            else:
-                # Logged user task creation
-                task = LoggedUserTask.objects.create(user=request.user, task_name=task_name)
-                return redirect('dashboard')
-        else:
-            # For unlogged user task creation
-            ip_address = get_client_ip(request)
-            task = UnloggedUserTask.objects.create(ip_address=ip_address, task_name=task_name)
-            return redirect('dashboard')
-
-    # For GET request, provide the project list for pro users
-    if request.user.is_authenticated and request.user.subscription_type == 'pro':
-        projects = Project.objects.filter(created_by=request.user)
-        return render(request, 'create_task.html', {'projects': projects})
-
-    return render(request, 'create_task.html')
 
 
 # Function to submit feedback for a task
@@ -177,40 +103,6 @@ def dashboard_view(request):
 
         return render(request, 'index.html', context)
     
-def user_tasks_view(request):
-    """
-    Fetch tasks for a user based on their authentication and subscription status
-    and render the 'tasks.html' template.
-    """
-    user = request.user
-    context = {}
-
-    if user.is_authenticated:
-        if user.subscription_type == 'pro':
-            # Fetch Pro user tasks
-            pro_tasks = ProUserTask.objects.filter(user=user)
-            context['tasks'] = pro_tasks
-        else:
-            # Fetch tasks directly created by the free user
-            user_tasks = LoggedUserTask.objects.filter(user=user)
-
-            # Fetch tasks assigned to the free user by Pro users
-            assigned_tasks = ProUserTask.objects.filter(assigned_to=user)
-
-            # Combine the tasks into a single list
-            context['tasks'] = list(user_tasks) + list(assigned_tasks)
-
-        # Add user subscription type to context
-        context['is_pro_user'] = user.subscription_type == 'pro'
-    else:
-        # Handle unlogged users
-        ip_address = get_client_ip(request)  # Fetch the IP address of the user
-        unlogged_tasks = UnloggedUserTask.objects.filter(ip_address=ip_address)
-        context['tasks'] = unlogged_tasks
-        context['is_pro_user'] = False  # Not a logged-in user
-
-    return render(request, 'tasks.html', context)
-
 
 
 def update_task_status(request, task_id):
@@ -233,15 +125,6 @@ def update_task_status(request, task_id):
         return JsonResponse({'status': 'success', 'is_done': task.is_done})
 
     return JsonResponse({'status': 'failed'})
-
-# Function to get client IP address
-def get_client_ip(request):
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
 
 def trial_middleware(get_response):
     def middleware(request):
@@ -285,137 +168,6 @@ def subscribe_pro(request):
     return render(request, 'subscribe_pro.html')
 
 
-
-
-
-@login_required
-def upload_task_file(request, task_id):
-    task = get_object_or_404(ProUserTask, id=task_id)
-    if request.method == 'POST' and request.FILES.get('file'):
-        uploaded_file = request.FILES['file']
-        task.uploaded_file = uploaded_file  # Assuming Task model has a file field
-        task.save()
-        return JsonResponse({'message': 'File uploaded successfully'})
-    return JsonResponse({'error': 'Invalid request'}, status=400)
-
-from django.http import HttpResponse, Http404
-import os
-
-
-def download_file(request, task_id):
-    # Get the task instance
-    task = get_object_or_404(ProUserTask, id=task_id)
-    
-    # Check if the task has an uploaded file
-    if not task.uploaded_file:
-        raise Http404("No file found for this task.")
-
-    # Construct the full file path
-    file_path = os.path.join(settings.MEDIA_ROOT, task.uploaded_file.name)
-
-    # Check if the file exists
-    if not os.path.exists(file_path):
-        raise Http404("File not found on the server.")
-
-    # Serve the file as a response
-    with open(file_path, 'rb') as file:
-        response = HttpResponse(file.read(), content_type='application/octet-stream')
-        response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
-        return response
-    
-
-
-
-
-@login_required
-def reassign_task(request, task_id):
-    # Fetch the task
-    task = get_object_or_404(ProUserTask, id=task_id)
-
-    # Ensure the user has permission to reassign the task
-    if request.user != task.project.created_by and request.user.role != 'team_leader':
-        return HttpResponseForbidden("You do not have permission to reassign this task.")
-    
-    if request.method == 'POST':
-        # Get the new assignee's ID from the form
-        new_assignee_id = request.POST.get('assigned_to')
-        new_assignee = get_object_or_404(CustomUser, id=new_assignee_id)
-
-        # Validate that the new assignee is a member of the project
-        if new_assignee not in task.project.members.all():
-            return HttpResponseForbidden("The selected user is not a member of this project.")
-
-        # Reassign the task
-        task.assigned_to = new_assignee
-        task.save()
-
-        # Redirect to the project detail page
-        return redirect('project_detail', project_id=task.project.id)
-
-    # Fetch the project members for the dropdown
-    project_members = task.project.members.all()
-    return render(request, 'reassign_task.html', {
-        'task': task,
-        'project_members': project_members,
-    })
-
-
-@login_required
-def task_detail(request, task_id):
-    task = get_object_or_404(ProUserTask, id=task_id)
-    project = task.project
-
-    # Ensure that the current user is the project leader
-    if project.created_by != request.user:
-        return HttpResponseForbidden("You are not authorized to manage tasks for this project.")
-
-    # Handle feedback submission (approve or refuse)
-    if request.method == "POST":
-        action = request.POST.get('action')
-        feedback_text = request.POST.get('feedback')
-
-        if action == "approve":
-            # Approve the task and mark it as done
-            task_feedback, created = TaskFeedback.objects.get_or_create(task=task)
-            task_feedback.approved = True
-            task_feedback.feedback = ""
-            task_feedback.save()
-
-            # Mark the task as done
-            task.mark_as_done()
-
-        elif action == "refuse":
-            # Refuse the task and save feedback
-            task_feedback, created = TaskFeedback.objects.get_or_create(task=task)
-            task_feedback.approved = False
-            task_feedback.feedback = feedback_text
-            task_feedback.save()
-
-            # Task remains not done
-            task.is_done = False
-            task.save()
-
-            # Delete the uploaded file if it exists
-            if task.uploaded_file:
-                task.uploaded_file.delete()
-
-        return redirect('project_detail', project_id=project.id)
-
-    # Get the current feedback for the task (if any)
-    feedback = TaskFeedback.objects.filter(task=task).first()
-
-    return render(request, 'task_detail.html', {
-        'task': task,
-        'feedback': feedback
-    })
-
-from .models import SubscriptionOrder
-import uuid
-import requests
-from django.contrib import messages
-from django.shortcuts import redirect
-from django.conf import settings
-from .models import SubscriptionOrder
 
 def pay(request):
     # Step 1: Set and Validate the Amount
@@ -566,22 +318,9 @@ def members_dashboard_view(request):
         return render(request, 'members_dashboard.html', context)
     else:
         # Redirect to a different page if the user is not a member of any business
-        return redirect('dashboard_view')  # Replace with your desired route
+        return redirect('dashboard')  # Replace with your desired route
 
-@login_required
-def reset_password(request):
-    if request.method == 'POST':
-        form = PasswordChangeForm(request.user, request.POST)
-        if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)  # Important!
-            # Update user profile status
-            user.userprofile.status = 'Activated'
-            user.userprofile.save()
-            return redirect('members_dashboard')  # Redirect to the members dashboard after successful password change
-    else:
-        form = PasswordChangeForm(request.user)
-    return render(request, 'reset_password.html', {'form': form})
+
 
 
 @login_required
