@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Blog Ideas Generator
+{% endblock %}
+
+{% block content %}
+<div class="container" style="background-color: white; padding: 20px; border-radius: 10px;">
+    <div id="page-wrapper">
+        <div id="page-inner">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>Blog Ideas Generator</h2>
+                    <h5>Welcome {{ user.username }}</h5>
+                    {% if messages %}
+                        <div class="alert alert-danger">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <style>
+                .blog-section {
+                    margin: 2rem 0;
+                    padding: 1.5rem;
+                    border-left: 4px solid #ff9800;
+                    background: #f8f9fa;
+                }
+                .typewriter-blog {
+                    font-family: 'Courier New', monospace;
+                    white-space: pre-wrap;
+                    color: #2c3e50;
+                }
+                .idea-number {
+                    color: #ff9800;
+                    font-weight: bold;
+                }
+                .generate_button {
+                    display: block;
+                    width: 100%;
+                    padding: clamp(10px, 3vw, 12px);
+                    font-size: clamp(14px, 2vw, 16px);
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    background-color: #e91e63;  /* Pink color */
+                    color: white;
+                    transition: background 0.3s;
+                }
+
+                .generate_button:hover {
+                    background-color: #e91e63;  /* Pink color on hover */
+                }
+            </style>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input type="text" 
+                           name="topic" 
+                           placeholder="Blog Topic (e.g., Digital Marketing)" 
+                           required
+                           class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <input type="text" 
+                           name="target_audience" 
+                           placeholder="Target Audience (e.g., Business Professionals)" 
+                           required
+                           class="form-control">
+                </div>
+                
+                <button type="submit" class="generate_button">Generate Ideas</button>
+            </form>
+
+            {% if blog_ideas %}
+                <div class="blog-section">
+                    <h3>Blog Ideas for {{ topic }} ({{ target_audience }})</h3>
+                    <div id="blog-content" class="typewriter-blog"></div>
+                </div>
+                
+                {{ blog_ideas|json_script:"blog-data" }}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const blogContent = JSON.parse(document.getElementById('blog-data').textContent);
+                        const blogElement = document.getElementById('blog-content');
+                        let index = 0;
+                        let htmlBuffer = '';
+                        
+                        function typeBlog() {
+                            if (index < blogContent.length) {
+                                htmlBuffer += blogContent.charAt(index);
+                                blogElement.innerHTML = htmlBuffer;
+                                index++;
+                                setTimeout(typeBlog, 20);
+                            }
+                        }
+                        
+                        blogElement.innerHTML = '';
+                        setTimeout(typeBlog, 500);
+                    });
+                </script>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

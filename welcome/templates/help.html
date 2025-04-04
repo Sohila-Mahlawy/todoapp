@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Help{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div id="page-wrapper">
+        <div id="page-inner">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2 class="text-center">Help</h2>
+                    <h5 class="text-center">Welcome {{ user.username }}, love to see you back.</h5>
+                </div>
+            </div>
+
+            {% if error %}
+                <p style="color: red; text-align: center;">{{ error }}</p>
+            {% endif %}
+            
+            <form action="{% url 'welcome:help' %}" method="post" class="text-center">
+                {% csrf_token %}
+                <label for="query" class="form-label">Question:</label>
+                <input type="text" id="query" name="query" class="form-control mx-auto mb-2" required style="max-width: 100%; background-color: white;">
+                <button type="submit" class="btn btn-danger w-100">Submit</button>
+            </form>
+            
+            {% if query and response %}
+            <div id="typewriter" class="mt-4">
+                <h3>Response to: <strong>{{ query }}</strong></h3>
+                <p id="response-text" class="response-text-clamp"></p>
+            </div>
+            <script>
+                // Typewriter Effect for Response
+                const response = `{{ response|escapejs }}`;
+                const responseText = document.getElementById("response-text");
+                let i = 0;
+
+                function typeWriter() {
+                    if (i < response.length) {
+                        responseText.innerHTML += response.charAt(i);
+                        i++;
+                        setTimeout(typeWriter, 50); // Adjust typing speed
+                    }
+                }
+
+                typeWriter();
+            </script>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Container Styles */
+    .container {
+        background-color: white; /* White background */
+        padding: 20px;
+        border-radius: 8px; /* Optional: rounded corners for a softer look */
+    }
+
+    /* Title Styles */
+    h2 {
+        font-weight: bold;
+        font-size: 36px;
+        color: #333;
+    }
+
+    /* Clamp the response text */
+    .response-text-clamp {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 5; /* Adjust line clamp to your preference */
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Button Styles */
+    .btn-danger {
+        background-color: #f44336; /* Red button */
+        border-color: #f44336;
+    }
+
+    .btn-danger:hover {
+        background-color: #d32f2f; /* Darker red on hover */
+        border-color: #d32f2f;
+    }
+
+    /* Text Styling for the Response Section */
+    #typewriter {
+        font-family: 'Courier New', monospace;
+        font-size: 16px;
+        color: #333;
+    }
+
+    h3 strong {
+        color: #4caf50; /* Highlight the question */
+    }
+
+    /* Centering the form and title */
+    .text-center {
+        text-align: center;
+    }
+
+    .form-label {
+        font-weight: bold;
+    }
+
+    .form-control {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+</style>
+{% endblock %}

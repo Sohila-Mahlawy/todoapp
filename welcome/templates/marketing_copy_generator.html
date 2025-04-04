@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block page_title %}
+Generate Marketing Copy
+{% endblock %}
+
+{% block content %}
+<div class="container" style="background-color: white; padding: 20px; border-radius: 10px;">
+    <div id="page-wrapper">
+        <div id="page-inner">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>Generate Marketing Copy</h2>
+                    {% if messages %}
+                        <div class="alert alert-danger">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <style>
+                .marketing-copy-section {
+                    margin: 2rem 0;
+                    padding: 1.5rem;
+                    border-left: 4px solid #ff9800;
+                    background: #f8f9fa;
+                }
+                .typewriter-marketing-copy {
+                    font-family: 'Courier New', monospace;
+                    white-space: pre-wrap;
+                    color: #2c3e50;
+                }
+                .generate_button {
+                    display: block;
+                    width: 100%;
+                    padding: clamp(10px, 3vw, 12px);
+                    font-size: clamp(14px, 2vw, 16px);
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    background-color: #e91e63;  /* Pink color */
+                    color: white;
+                    transition: background 0.3s;
+                }
+
+                .generate_button:hover {
+                    background-color: #e91e63;  /* Pink color on hover */
+                }
+            </style>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="product_name">Product Name:</label>
+                    <input type="text" class="form-control" id="product_name" name="product_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="target_audience">Target Audience:</label>
+                    <input type="text" class="form-control" id="target_audience" name="target_audience" required>
+                </div>
+                <div class="form-group">
+                    <label for="ad_goals">Ad Goals:</label>
+                    <input type="text" class="form-control" id="ad_goals" name="ad_goals" required>
+                </div>
+                <button type="submit" class="generate_button">Generate</button>
+            </form>
+
+            {% if marketing_copy %}
+                <div class="marketing-copy-section">
+                    <h3>Generated Marketing Copy:</h3>
+                    <div id="marketing-copy-content" class="typewriter-marketing-copy"></div>
+                </div>
+                
+                {{ marketing_copy|json_script:"marketing-copy-data" }}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const marketingCopyContent = JSON.parse(document.getElementById('marketing-copy-data').textContent);
+                        const marketingCopyElement = document.getElementById('marketing-copy-content');
+                        let index = 0;
+                        let htmlBuffer = '';
+                        
+                        function typeMarketingCopy() {
+                            if (index < marketingCopyContent.length) {
+                                htmlBuffer += marketingCopyContent.charAt(index);
+                                marketingCopyElement.innerHTML = htmlBuffer;
+                                index++;
+                                setTimeout(typeMarketingCopy, 20);
+                            }
+                        }
+                        
+                        marketingCopyElement.innerHTML = '';
+                        setTimeout(typeMarketingCopy, 500);
+                    });
+                </script>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

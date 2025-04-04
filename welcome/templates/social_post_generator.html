@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Social Media Post Generator
+{% endblock %}
+
+{% block content %}
+<div class="container" style="background-color: white; padding: 20px; border-radius: 10px;">
+    <div id="page-wrapper">
+        <div id="page-inner">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>Social Media Post Generator</h2>
+                    <h5>Welcome {{ user.username }}</h5>
+                    {% if messages %}
+                        <div class="alert alert-danger">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <style>
+                .social-section {
+                    margin: 2rem 0;
+                    padding: 1.5rem;
+                    border-left: 4px solid #e91e63;
+                    background: #f8f9fa;
+                }
+
+                .typewriter-social {
+                    font-family: 'Courier New', monospace;
+                    white-space: pre-wrap;
+                    color: #2c3e50;
+                }
+
+                .platform-selector {
+                    width: 200px;
+                    padding: 8px;
+                    margin-bottom: 1rem;
+                }
+
+                .hashtag {
+                    color: #2196f3;
+                    font-weight: bold;
+                }
+
+                /* Responsive input styling with clamp */
+                input.form-control {
+                    font-size: clamp(14px, 2vw, 16px);
+                    padding: clamp(10px, 2vw, 12px);
+                }
+
+                /* Button styling with requested color */
+                .btn-primary {
+                    display: block;
+                    width: 100%;
+                    padding: clamp(10px, 3vw, 12px);
+                    font-size: clamp(14px, 2vw, 16px);
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    background-color: #e91e63;  /* Red color */
+                    color: white;
+                    transition: background 0.3s;
+                }
+
+                .btn-primary:hover {
+                    background-color: #e91e63;  /* Red color on hover */
+                }
+            </style>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <select name="platform" class="form-control platform-selector" required>
+                        <option value="">Select Platform</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="twitter">Twitter</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="linkedin">LinkedIn</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <input type="text" 
+                           name="target_audience" 
+                           placeholder="Target Audience (e.g., Programmers, Marketers)" 
+                           required
+                           class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <input type="text" 
+                           name="campaign_goal" 
+                           placeholder="Campaign Goal (e.g., Followers Growth, Engagement)" 
+                           required
+                           class="form-control">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Generate Post</button>
+            </form>
+
+            {% if social_post %}
+                <div class="social-section">
+                    <h3>{{ platform|title }} Post for {{ target_audience }}</h3>
+                    <div id="social-post" class="typewriter-social"></div>
+                </div>
+                
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const postContent = `{{ social_post|safe }}`;
+                        const postElement = document.getElementById('social-post');
+                        let index = 0;
+                        
+                        function typePost() {
+                            if (index < postContent.length) {
+                                postElement.innerHTML += postContent.charAt(index);
+                                index++;
+                                setTimeout(typePost, 20);
+                            }
+                        }
+                        setTimeout(typePost, 500);
+                    });
+                </script>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

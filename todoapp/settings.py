@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'projects',
     'businesses',
     'users',
+    'tasks'
 ]
 
 MIDDLEWARE = [
@@ -59,20 +60,21 @@ ROOT_URLCONF = 'todoapp.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+                'django.contrib.messages.context_processors.messages',  # Ensure this line is included
+                'welcome.context_processors.notifications',  # Add our notifications context processor
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'todoapp.wsgi.application'
+
 
 
 # Database
@@ -142,8 +144,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'zyadwael2009@gmail.com'
-EMAIL_HOST_PASSWORD = 'vdng owdm bcki wdzg'
+EMAIL_HOST_USER = 'netfull66@gmail.com'
+EMAIL_HOST_PASSWORD = 'ggse ugal ocjn babn'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 LOGIN_URL = '/login/'
@@ -151,9 +153,9 @@ LOGIN_URL = '/login/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-PAYMOB_API_KEY = 'ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2T1RnNE5EWXpMQ0p1WVcxbElqb2lNVGN5TXpFd09UQTFPUzQyTlRFd09EWWlmUS5tdFNMa05GNnBxTTVmMVF5T0RiS0xiR21kb1FwOUZHZS1QcjdTVXhJbVp0N1htOWhnLThLNWdMN1BCSEJ0TXl5SUJnUlUwTm9fWF9vWGFOUF9INmFXUQ=='
-PAYMOB_INTEGRATION_ID = '4623557'
-PAYMOB_IFRAME_ID = '859704'
+PAYMOB_API_KEY = 'ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2T1RnNU5qVXlMQ0p1WVcxbElqb2lhVzVwZEdsaGJDSjkuLW9YR2FERDc1SHVnWklYTFJ6WU9Jb202VGRCNk96OXBubTJRT2dITWtrUkNEUWxpQ1VQMlhkMllOeVNMV05YS2JaRUctNEZFOHdnVUREczczcTBZbEE='
+PAYMOB_INTEGRATION_ID = '4627071'
+PAYMOB_IFRAME_ID = '860965'
 
 ALLOWED_HOSTS = ['netfull.site', '.netfull.site','127.0.0.1']
 
@@ -165,3 +167,36 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 512 * 1024  # 512 KB
 
 # Maximum size in bytes of POST data that will be read before streaming
 DATA_UPLOAD_MAX_MEMORY_SIZE = 512 * 1024  # 512 KB
+
+
+STRIPE_PUBLISHABLE_KEY = 'pk_test_51QsVKV06vTQuVgrJcVFlNKRN9cBlchw5Gpeu2r42uihr0v9tNnYuji7a6UlyJLIAs40hGxkHWBkwsmDDf6BgKjRJ00ONcIUteg'
+STRIPE_SECRET_KEY = 'sk_test_51QsVKV06vTQuVgrJUYuifZksase2rs0gekwbNKksKhIN1imTUGApIVyy9VewJFHBUK2KBTYJCxNOrTSEiU3DevkI00e7SoDlV2'
+
+# Jitsi Meet Settings
+JITSI_APP_ID = "your-jitsi-app-id"  # From Google Cloud Console
+JITSI_APP_SECRET = "your-jitsi-app-secret"  # From Google Cloud Console
+
+# OAuth Settings
+GOOGLE_CLIENT_ID = "your-google-client-id"
+GOOGLE_CLIENT_SECRET = "your-google-client-secret"
+GITHUB_CLIENT_ID = "Ov23liU0GfwUWwCelgmd"
+GITHUB_CLIENT_SECRET = "065eab0e7620cf854139ef9f4a578a0a346c4a8b"
+
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.db.backends': {
+            'level': 'WARNING',  # Only show warnings and errors, not SQL queries
+            'handlers': ['console'],
+            'propagate': False,
+        },
+    },
+}

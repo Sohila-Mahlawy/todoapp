@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Generate FAQ
+{% endblock %}
+
+{% block content %}
+<div class="container" style="background-color: white; padding: 20px; border-radius: 10px;">
+    <div id="page-wrapper">
+        <div id="page-inner">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>FAQ Generator</h2>
+                    <h5>Welcome {{ user.username }}</h5>
+                </div>
+            </div>
+
+            <style>
+                .faq-section {
+                    margin: 2rem 0;
+                    padding: 1.5rem;
+                    border-left: 4px solid #27ae60;
+                    background: #f8f9fa;
+                }
+
+                .typewriter-faq {
+                    font-family: 'Courier New', monospace;
+                    white-space: pre-wrap;
+                    color: #2c3e50;
+                }
+
+                .faq-table {
+                    width: 100%;
+                    margin: 1rem 0;
+                    border-collapse: collapse;
+                }
+
+                .faq-table td, .faq-table th {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                    vertical-align: top;
+                }
+
+                .question-column {
+                    width: 30%;
+                    font-weight: bold;
+                }
+
+                .form-group {
+                    margin-bottom: 1rem;
+                }
+
+                /* Responsive input styling with clamp */
+                input.form-control, textarea.form-control {
+                    font-size: clamp(14px, 2vw, 16px);
+                    padding: clamp(10px, 2vw, 12px);
+                }
+
+                /* Button styling with requested color */
+                .generate_button {
+                    display: block;
+                    width: 100%;
+                    padding: clamp(10px, 3vw, 12px);
+                    font-size: clamp(14px, 2vw, 16px);
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    background-color: #e91e63;  /* Red color */
+                    color: white;
+                    transition: background 0.3s;
+                }
+
+                .generate_button:hover {
+                    background-color: #e91e63;  /* Red color on hover */
+                }
+            </style>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input type="text" 
+                           name="company_name" 
+                           required 
+                           readonly 
+                           value="{% if user_business %}{{ user_business.name }}{% endif %}"
+                           class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <input type="text" 
+                           name="product_or_service" 
+                           placeholder="Product/Service Name" 
+                           required
+                           class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <textarea name="common_questions" 
+                              placeholder="Enter common questions separated by commas (e.g., How to use, Pricing, Support)"
+                              required
+                              class="form-control"
+                              rows="3"></textarea>
+                </div>
+                
+                <button type="submit" class="generate_button">Generate FAQ</button>
+            </form>
+
+            {% if faq %}
+                <div class="faq-section">
+                    <h3>{{ company_name }} FAQ - {{ product_or_service }}</h3>
+                    <div id="faq-text" class="typewriter-faq"></div>
+                </div>
+                
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const faqContent = `{{ faq|safe }}`;
+                        const faqElement = document.getElementById('faq-text');
+                        let index = 0;
+                        
+                        function typeFAQ() {
+                            if (index < faqContent.length) {
+                                faqElement.innerHTML += faqContent.charAt(index);
+                                index++;
+                                setTimeout(typeFAQ, 20);
+                            }
+                        }
+                        setTimeout(typeFAQ, 500);
+                    });
+                </script>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

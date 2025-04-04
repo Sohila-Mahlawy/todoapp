@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Meeting</title>
+    <style>
+        /* Reset default margins and padding */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        #root {
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        /* Make sure Zego container takes full width */
+        .ZegoUIKitPrebuilt {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Ensure video containers take full width */
+        .ZegoUIKitPrebuilt-main {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Adjust video grid container */
+        .ZegoUIKitPrebuilt-video-grid {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Custom styles for Zego UI Kit elements */
+        :root {
+            --primary-color: #2196f3;
+            --secondary-color: #1976d2;
+            --background-color: #ffffff;
+            --text-color: #333333;
+        }
+
+        /* Improve button styles */
+        button {
+            border-radius: 8px !important;
+            transition: all 0.2s ease !important;
+        }
+
+        button:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        /* Improve chat container */
+        .ZegoRoomMessage {
+            background-color: var(--background-color) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+        }
+    </style>
+</head>
+
+
+<body>
+    <div id="root"></div>
+</body>
+<script src="https://unpkg.com/@zegocloud/zego-uikit-prebuilt/zego-uikit-prebuilt.js"></script>
+<script>
+window.onload = function () {
+    function getUrlParams(url) {
+        let urlStr = url.split('?')[1];
+        const urlSearchParams = new URLSearchParams(urlStr);
+        const result = Object.fromEntries(urlSearchParams.entries());
+        return result;
+    }
+
+
+        // Generate a Token by calling a method.
+        // @param 1: appID
+        // @param 2: serverSecret
+        // @param 3: Room ID
+        // @param 4: User ID
+        // @param 5: Username
+    const roomID = getUrlParams(window.location.href)['roomID'] || (Math.floor(Math.random() * 10000) + "");
+    const userID = Math.floor(Math.random() * 10000) + "";
+    const userName = "userName" + userID;
+    const appID = 682985926;
+    const serverSecret = "12bf5a8ade973109f6b64dd11b7f575e";
+    const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userID, userName);
+
+    
+        const zp = ZegoUIKitPrebuilt.create(kitToken);
+        zp.joinRoom({
+            container: document.querySelector("#root"),
+            sharedLinks: [{
+                name: 'Personal link',
+                url: window.location.protocol + '//' + window.location.host  + window.location.pathname + '?roomID=' + roomID,
+            }],
+            scenario: {
+                mode: ZegoUIKitPrebuilt.VideoConference,
+            },
+                
+           	turnOnMicrophoneWhenJoining: true,
+           	turnOnCameraWhenJoining: true,
+           	showMyCameraToggleButton: true,
+           	showMyMicrophoneToggleButton: true,
+           	showAudioVideoSettingsButton: true,
+           	showScreenSharingButton: true,
+           	showTextChat: true,
+           	showUserList: true,
+           	maxUsers: 50,
+           	layout: "Auto",
+           	showLayoutButton: true,
+         
+            });
+}
+</script>
+
+</html>

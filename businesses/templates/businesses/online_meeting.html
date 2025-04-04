@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Meeting Room: {{ room_name }}</title>
+    <!-- Include Jitsi Meet API -->
+    <script src="https://meet.jit.si/external_api.js"></script>
+    <style>
+        /* Reset default margins and padding */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .header {
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #333;
+            margin: 0;
+        }
+
+        #jitsi-meet-conf-container {
+            width: 100% !important;
+            height: calc(100vh - 60px) !important; /* Subtract header height */
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.5rem;
+            }
+
+            h1 {
+                font-size: 1.2rem;
+            }
+
+            #jitsi-meet-conf-container {
+                height: calc(100vh - 45px) !important; /* Smaller header on mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Online Meeting Room: {{ room_name }}</h1>
+    </div>
+    <div id="jitsi-meet-conf-container"></div>
+
+    <script>
+        const domain = 'meet.jit.si';
+        const options = {
+            roomName: '{{ room_name }}',
+            width: '100%',
+            height: '100%',
+            parentNode: document.querySelector('#jitsi-meet-conf-container'),
+            configOverwrite: {
+                prejoinPageEnabled: true,
+                disableThirdPartyRequests: false,
+                disableInitialGUM: true,
+                // Update authentication settings
+                tokenAuthUrl: '{{ request.scheme }}://{{ request.get_host }}/businesses/auth/jitsi-token/',
+                enableAuth: true,
+                enableClosePage: true,
+                // Add OAuth providers configuration
+                oauth2: {
+                    clients: {
+                        'google': {
+                            'clientId': '{{ google_client_id }}'
+                        },
+                        'github': {
+                            'clientId': '{{ github_client_id }}'
+                        }
+                    }
+                }
+            },
+            interfaceConfigOverwrite: {
+                SHOW_JITSI_WATERMARK: false,
+                SHOW_BRAND_WATERMARK: false,
+                MOBILE_APP_PROMO: false,
+                DISPLAY_WELCOME_PAGE_CONTENT: false,
+                DISPLAY_WELCOME_PAGE_TOOLBAR_ADDITIONAL_CONTENT: false,
+                AUTHENTICATION_ENABLE: true,
+                TOOLBAR_BUTTONS: [
+                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                    'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
+                    'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
+                    'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
+                    'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone',
+                    'security', 'authenticate'  // Add authenticate button
+                ],
+            },
+            userInfo: {
+                displayName: '{{ request.user.get_full_name|default:request.user.username }}'
+            }
+        };
+
+        const api = new JitsiMeetExternalAPI(domain, options);
+
+        // Handle authentication events
+        api.addEventListener('participantRoleChanged', (event) => {
+            if (event.role === 'moderator') {
+                console.log('User is now a moderator');
+            }
+        });
+
+        api.addEventListener('videoConferenceJoined', (event) => {
+            console.log('User has joined the conference', event);
+        });
+
+        api.addEventListener('passwordRequired', () => {
+            const password = prompt('Please enter the meeting password:');
+            if (password) {
+                api.executeCommand('password', password);
+            }
+        });
+    </script>
+</body>
+</html>

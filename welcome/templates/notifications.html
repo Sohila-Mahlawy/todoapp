@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="card my-4">
+        <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
+          <div class="bg-gradient-dark shadow-dark border-radius-lg pt-4 pb-3 d-flex justify-content-between align-items-center">
+            <h6 class="text-white text-capitalize ps-3 mb-0">Notifications</h6>
+            {% if notifications %}
+              <button id="mark-all-read" class="btn btn-sm btn-white me-3">Mark All as Read</button>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body px-0 pb-2">
+          <div class="table-responsive p-0">
+            {% if notifications %}
+              <table class="table align-items-center mb-0">
+                <thead>
+                  <tr>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Type</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Message</th>
+                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Date</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Status</th>
+                    <th class="text-secondary opacity-7"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for notification in notifications %}
+                    <tr class="notification-row {% if notification.is_read %}opacity-6{% endif %}" data-id="{{ notification.id }}">
+                      <td>
+                        <div class="d-flex px-2 py-1">
+                          <div>
+                            {% if notification.notification_type == 'info' %}
+                              <div class="icon icon-shape icon-sm bg-info shadow text-center border-radius-md">
+                                <i class="material-symbols-rounded text-white opacity-10">info</i>
+                              </div>
+                            {% elif notification.notification_type == 'success' %}
+                              <div class="icon icon-shape icon-sm bg-success shadow text-center border-radius-md">
+                                <i class="material-symbols-rounded text-white opacity-10">check_circle</i>
+                              </div>
+                            {% elif notification.notification_type == 'warning' %}
+                              <div class="icon icon-shape icon-sm bg-warning shadow text-center border-radius-md">
+                                <i class="material-symbols-rounded text-white opacity-10">warning</i>
+                              </div>
+                            {% else %}
+                              <div class="icon icon-shape icon-sm bg-secondary shadow text-center border-radius-md">
+                                <i class="material-symbols-rounded text-white opacity-10">notifications</i>
+                              </div>
+                            {% endif %}
+                          </div>
+                          <div class="d-flex flex-column justify-content-center ms-3">
+                            <h6 class="mb-0 text-sm">{{ notification.notification_type|title }}</h6>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <p class="text-xs font-weight-bold mb-0">{{ notification.message }}</p>
+                      </td>
+                      <td class="align-middle text-center">
+                        <span class="text-secondary text-xs font-weight-bold">{{ notification.created_at|date:"M d, Y" }}</span>
+                        <br>
+                        <span class="text-secondary text-xs">{{ notification.created_at|time:"H:i" }}</span>
+                      </td>
+                      <td>
+                        <span class="badge badge-sm {% if notification.is_read %}bg-secondary{% else %}bg-gradient-success{% endif %}">
+                          {% if notification.is_read %}Read{% else %}New{% endif %}
+                        </span>
+                      </td>
+                      <td class="align-middle text-end">
+                        {% if not notification.is_read %}
+                          <button class="btn btn-link text-dark mark-read-btn px-3 mb-0" data-id="{{ notification.id }}">
+                            <i class="material-symbols-rounded text-sm me-2">done_all</i>Mark as Read
+                          </button>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <div class="text-center py-5">
+                <i class="material-symbols-rounded text-secondary" style="font-size: 48px;">notifications_off</i>
+                <p class="text-secondary mt-2">You don't have any notifications yet.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Function to mark a notification as read
+  function markAsRead(notificationId) {
+    fetch('{% url "welcome:mark_notification_read" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        notification_id: notificationId
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Update UI to reflect read status
+        if (notificationId === 'all') {
+          // If marking all as read, update all rows
+          document.querySelectorAll('.notification-row').forEach(row => {
+            row.classList.add('opacity-6');
+            const statusBadge = row.querySelector('.badge');
+            if (statusBadge) {
+              statusBadge.classList.remove('bg-gradient-success');
+              statusBadge.classList.add('bg-secondary');
+              statusBadge.textContent = 'Read';
+            }
+            const markReadBtn = row.querySelector('.mark-read-btn');
+            if (markReadBtn) {
+              markReadBtn.remove();
+            }
+          });
+        } else {
+          // If marking a single notification, update just that row
+          const row = document.querySelector(`.notification-row[data-id="${notificationId}"]`);
+          if (row) {
+            row.classList.add('opacity-6');
+            const statusBadge = row.querySelector('.badge');
+            if (statusBadge) {
+              statusBadge.classList.remove('bg-gradient-success');
+              statusBadge.classList.add('bg-secondary');
+              statusBadge.textContent = 'Read';
+            }
+            const markReadBtn = row.querySelector('.mark-read-btn');
+            if (markReadBtn) {
+              markReadBtn.remove();
+            }
+          }
+        }
+      } else {
+        console.error('Error marking notification as read:', data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error marking notification as read:', error);
+    });
+  }
+
+  // Add click event listeners to mark as read buttons
+  document.querySelectorAll('.mark-read-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const notificationId = this.getAttribute('data-id');
+      markAsRead(notificationId);
+    });
+  });
+
+  // Add click event listener to mark all as read button
+  const markAllReadBtn = document.getElementById('mark-all-read');
+  if (markAllReadBtn) {
+    markAllReadBtn.addEventListener('click', function() {
+      markAsRead('all');
+    });
+  }
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Financial Forecast Generator
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="section">
+        <h2>Financial Forecast Generator</h2>
+        <h5>Welcome {{ user.username }}</h5>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <input type="text" 
+                   name="company_name" 
+                   required 
+                   readonly 
+                   value="{% if user_business %}{{ user_business.name }}{% endif %}"
+                   class="form-control">
+        </div>
+        
+        <div class="form-group">
+            <input type="number" 
+                   name="current_revenue" 
+                   placeholder="Current Annual Revenue ($)" 
+                   required
+                   step="1000"
+                   class="form-control">
+        </div>
+
+        <div class="form-group">
+            <input type="number" 
+                   name="growth_rate" 
+                   placeholder="Expected Annual Growth Rate Percentage (%)" 
+                   required
+                   min="1"
+                   max="100"
+                   step="0.1"
+                   class="growth-rate-input">  <!-- Added custom class -->
+        </div>
+        
+        <button type="submit" class="generate_button">Generate Forecast</button>
+    </form>
+
+    {% if forecast %}
+        <div class="financial-section">
+            <h3>{{ company_name }} Financial Projection</h3>
+            <div id="forecast-text" class="typewriter-financial"></div>
+        </div>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const forecast = `{{ forecast|safe }}`;
+                const forecastElement = document.getElementById('forecast-text');
+                let index = 0;
+                
+                function typeForecast() {
+                    if (index < forecast.length) {
+                        forecastElement.innerHTML += forecast.charAt(index);
+                        index++;
+                        setTimeout(typeForecast, 20);
+                    }
+                }
+                setTimeout(typeForecast, 500);
+            });
+        </script>
+    {% endif %}
+</div>
+
+<style>
+    .container {
+        max-width: clamp(300px, 90%, 900px);
+        margin: clamp(20px, 5vw, 40px) auto;
+        padding: clamp(15px, 4vw, 20px);
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    .section {
+        margin-bottom: clamp(20px, 5vw, 40px);
+    }
+
+    .form-group {
+        margin-bottom: clamp(10px, 3vw, 20px);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: clamp(8px, 2vw, 10px);
+        font-size: clamp(14px, 2vw, 16px);
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin-top: clamp(8px, 2vw, 10px);
+    }
+
+    .growth-rate-input {
+        width: 100%;
+        min-width: 300px;
+        padding: 12px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 8px 0;
+        transition: border-color 0.3s ease;
+    }
+
+    .growth-rate-input:focus {
+        border-color: #27ae60;
+        outline: none;
+    }
+
+    .generate_button {
+        display: block;
+        width: 100%;
+        padding: clamp(10px, 3vw, 12px);
+        font-size: clamp(14px, 2vw, 16px);
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background-color: #e91e63;  /* Red color */
+        color: white;
+        transition: background 0.3s;
+    }
+
+    .generate_button:hover {
+        background-color: #c2185b;  /* Darker red on hover */
+    }
+
+    .financial-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        border-left: 4px solid #27ae60;
+        background: #f8f9fa;
+    }
+
+    .typewriter-financial {
+        font-family: 'Courier New', monospace;
+        white-space: pre-wrap;
+        color: #2c3e50;
+    }
+
+    table {
+        width: 100%;
+        margin: 1rem 0;
+        border-collapse: collapse;
+    }
+
+    td, th {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+</style>
+
+{% endblock %}

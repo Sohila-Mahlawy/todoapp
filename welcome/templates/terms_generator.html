@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block content %}
+<div id="page-wrapper">
+    <div id="page-inner">
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Generate Terms & Policies</h2>
+                <h5>Welcome {{ user.username }}, Love to see you back.</h5>
+            </div>
+        </div>
+
+        <style>
+            #typewriter {
+                margin-top: 20px;
+                font-family: monospace;
+                font-size: 16px;
+                color: #333;
+            }
+            #response-text {
+                border-left: 2px solid #4caf50;
+                padding-left: 10px;
+                white-space: pre-wrap;
+                overflow: hidden;
+                position: relative;
+            }
+            #response-text::after {
+                content: "|";
+                animation: blink 1s step-end infinite;
+                color: #4caf50;
+                position: absolute;
+                right: -5px;
+            }
+            @keyframes blink {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0; }
+            }
+            p strong {
+                color: #4caf50;
+            }
+        </style>
+
+    <form method="POST">
+        {% csrf_token %}
+        <input type="text" 
+            name="company_name" 
+            required 
+            readonly 
+            value="{% if user_business %}{{ user_business.name }}{% endif %}">
+        <br><br>
+        <textarea name="company_description" 
+                placeholder="Company Description" 
+                required></textarea>
+        <br><br>
+        <button type="submit">Generate</button>
+    </form>
+
+        {% if result %}
+            <h2>Generated Terms for {{ company_name }}</h2>
+            <div id="typewriter">
+                <div id="response-text"></div>
+            </div>
+            
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const response = `{{ result|safe }}`;
+                    const responseElement = document.getElementById('response-text');
+                    let index = 0;
+                    responseElement.innerHTML = '';
+                    
+                    function typeWriter() {
+                        if (index < response.length) {
+                            responseElement.innerHTML += response.charAt(index);
+                            index++;
+                            setTimeout(typeWriter, 20);
+                        }
+                    }
+                    
+                    // Start the typing effect after a short delay
+                    setTimeout(typeWriter, 500);
+                });
+            </script>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

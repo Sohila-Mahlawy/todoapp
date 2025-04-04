@@ -1,20 +1,58 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Project Management</title>
-</head>
-<body>
-    <h1>Project Management Assistant</h1>
-    <p>Business Name: {{ business.name }}</p> <!-- Display business name -->
-
-    <form method="POST" action="{% url 'api' business.id %}">
-        {% csrf_token %}
-
-        <label for="project_description">Project Description:</label>
-        <textarea id="project_description" name="project_description" required></textarea><br>
-
-        <button type="submit">Submit</button>
-    </form>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block content %}
+        <div id="page-wrapper" >
+            <div id="page-inner">
+                <div class="row">
+                    <div class="col-md-12">
+                     <h2 data-i18n="Admin Dashboard">Project Management Assistant</h2>   
+                        <h5><span data-i18n="Welcome">Welcome</span> {{user.username}}, <span data-i18n="Love to see you back">Love to see you back</span>.</h5>
+                    </div>
+                </div>              
+                <hr />                
+                <div class="row">
+                    <div class="col-md-6 col-sm-12 col-xs-12">           
+		     </div>
+                    
+                    
+                    <div class="col-md-3 col-sm-12 col-xs-12 ">
+                        <div class="panel ">
+          
+        </div>
+			
+    </div>
+                        
+        </div>
+                 <!-- /. ROW  -->
+                <div class="row"> 
+                    
+                      
+                               <div class="col-md-9 col-sm-12 col-xs-12">                     
+                               
+                </div>
+                    <div class="col-md-3 col-sm-12 col-xs-12">                                                
+                        </div>
+                
+           </div>
+                 <!-- /. ROW  -->
+                 <p>Business Name: {{ business.name }}</p> <!-- Display business name -->
+             
+                 <form method="POST" action="{% url 'businesses:api' business.id %}">
+                     {% csrf_token %}
+             
+                     <label for="project_description">Project Description:</label>
+                     <textarea id="project_description" name="project_description" required></textarea><br>
+             
+                     <button type="submit">Submit</button>
+                 </form>
+                 <!-- /. ROW  -->     
+                       
+    </div>
+             <!-- /. PAGE INNER  -->
+             
+            </div>
+            
+         <!-- /. PAGE WRAPPER  -->
+         
+        </div>
+        
+        {% endblock %}

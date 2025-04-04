@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Event Schedule Generator <!-- Custom page title for this page -->
+{% endblock %}
+
+
+{% block content %}
+<div class="container">
+    <div class="section">
+        <h2>Event Schedule Generator</h2>
+        <h5>Welcome {{ user.username }}</h5>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <input type="text" 
+                   name="event_name" 
+                   required 
+                   readonly 
+                   value="{% if user_business %}{{ user_business.name }}{% endif %}"
+                   class="form-control">
+        </div>
+        
+        <div class="form-group">
+            <input type="date" 
+                   name="event_date" 
+                   required
+                   class="form-control"
+                   min="{{ 'now'|date:'Y-m-d' }}">
+        </div>
+
+        <div class="form-group">
+            <textarea name="activities_list" 
+                      placeholder="Enter activities separated by commas (e.g., Opening Remarks, Keynote Speech, Workshop)"
+                      required
+                      class="form-control"
+                      rows="3"></textarea>
+        </div>
+        
+        <button type="submit" class="generate_button">Generate Schedule</button>
+    </form>
+
+    {% if schedule %}
+        <div class="schedule-section">
+            <h3>{{ event_name }} Event Schedule - {{ formatted_date }}</h3>
+            <div id="schedule-text" class="typewriter-schedule"></div>
+        </div>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const schedule = `{{ schedule|safe }}`;
+                const scheduleElement = document.getElementById('schedule-text');
+                let index = 0;
+                
+                function typeSchedule() {
+                    if (index < schedule.length) {
+                        scheduleElement.innerHTML += schedule.charAt(index);
+                        index++;
+                        setTimeout(typeSchedule, 20);
+                    }
+                }
+                setTimeout(typeSchedule, 500);
+            });
+        </script>
+    {% endif %}
+</div>
+
+<style>
+    .container {
+        max-width: clamp(300px, 90%, 900px);
+        margin: clamp(20px, 5vw, 40px) auto;
+        padding: clamp(15px, 4vw, 20px);
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    .section {
+        margin-bottom: clamp(20px, 5vw, 40px);
+    }
+
+    .form-group {
+        margin-bottom: clamp(10px, 3vw, 20px);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: clamp(8px, 2vw, 10px);
+        font-size: clamp(14px, 2vw, 16px);
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin-top: clamp(8px, 2vw, 10px);
+    }
+
+    .generate_button {
+        display: block;
+        width: 100%;
+        padding: clamp(10px, 3vw, 12px);
+        font-size: clamp(14px, 2vw, 16px);
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background-color: #e91e63;  /* Blue color */
+        color: white;
+        transition: background 0.3s;
+    }
+
+    .generate_button:hover {
+        background-color: #e91e63;  /* Darker blue on hover */
+    }
+
+    .schedule-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        border-left: 4px solid #3498db;
+        background: #f8f9fa;
+    }
+
+    .typewriter-schedule {
+        font-family: 'Courier New', monospace;
+        white-space: pre-wrap;
+        color: #2c3e50;
+    }
+
+    table {
+        width: 100%;
+        margin: 1rem 0;
+        border-collapse: collapse;
+    }
+
+    td, th {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+
+    .time-column {
+        width: 20%;
+    }
+
+    .activity-column {
+        width: 25%;
+    }
+</style>
+
+{% endblock %}

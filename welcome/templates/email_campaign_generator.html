@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Email Campaign Generator
+{% endblock %}
+
+{% block content %}
+<div class="container" style="background-color: white; padding: 20px; border-radius: 10px;">
+    <div id="page-wrapper">
+        <div id="page-inner">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>Email Campaign Generator</h2>
+                    <h5>Welcome {{ user.username }}</h5>
+                    {% if messages %}
+                        <div class="alert alert-danger">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <style>
+                .email-section {
+                    margin: 2rem 0;
+                    padding: 1.5rem;
+                    border-left: 4px solid #9c27b0;
+                    background: #f8f9fa;
+                }
+
+                .typewriter-email {
+                    font-family: 'Courier New', monospace;
+                    white-space: pre-wrap;
+                    color: #2c3e50;
+                }
+
+                .campaign-goal-input {
+                    width: 100%;
+                    max-width: 500px;
+                    font-size: clamp(14px, 2vw, 16px);
+                    padding: clamp(10px, 2vw, 12px);
+                }
+
+                .email-highlight {
+                    color: #9c27b0;
+                    font-weight: bold;
+                }
+
+                input.form-control {
+                    font-size: clamp(14px, 2vw, 16px);
+                    padding: clamp(10px, 2vw, 12px);
+                }
+
+                .btn-primary {
+                    display: block;
+                    width: 100%;
+                    padding: clamp(10px, 3vw, 12px);
+                    font-size: clamp(14px, 2vw, 16px);
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    background-color: #e91e63 ;  /* Purple color */
+                    color: white;
+                    transition: background 0.3s;
+                }
+
+                .btn-primary:hover {
+                    background-color: #e91e63 ;  /* Purple color on hover */
+                }
+            </style>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input type="text" 
+                           name="company_name" 
+                           required 
+                           readonly 
+                           value="{% if user_business %}{{ user_business.name }}{% endif %}"
+                           class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <input type="text" 
+                           name="campaign_goals" 
+                           placeholder="Campaign Goals (e.g., Sales Growth, Member Retention)" 
+                           required
+                           class="form-control campaign-goal-input">
+                </div>
+
+                <div class="form-group">
+                    <input type="text" 
+                           name="target_audience" 
+                           placeholder="Target Audience (e.g., New Members, Existing Customers)" 
+                           required
+                           class="form-control">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Generate Campaign</button>
+            </form>
+
+            {% if email_campaign %}
+                <div class="email-section">
+                    <h3>{{ target_audience }} Email Campaign for {{ company_name }}</h3>
+                    <div id="email-content" class="typewriter-email"></div>
+                </div>
+                
+                {{ email_campaign|json_script:"email-data" }}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const emailContent = JSON.parse(document.getElementById('email-data').textContent);
+                        const emailElement = document.getElementById('email-content');
+                        let index = 0;
+                        let htmlBuffer = '';
+                        
+                        function typeEmail() {
+                            if (index < emailContent.length) {
+                                htmlBuffer += emailContent.charAt(index);
+                                emailElement.innerHTML = htmlBuffer;
+                                index++;
+                                setTimeout(typeEmail, 20);
+                            }
+                        }
+                        
+                        emailElement.innerHTML = '';
+                        setTimeout(typeEmail, 500);
+                    });
+                </script>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

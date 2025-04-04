@@ -1,0 +1,7 @@
+django
+stripe
+openai
+pandas 
+jwt
+ffmpeg
+pillow

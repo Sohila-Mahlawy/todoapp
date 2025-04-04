@@ -1,5 +1,7 @@
 from django.db import models
 from welcome.views import CustomUser
+from django.contrib.auth.models import User
+from django.conf import settings  # Import settings to access AUTH_USER_MODEL
 
 
 class Business(models.Model):
@@ -9,6 +11,7 @@ class Business(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='businesses')
     members = models.ManyToManyField(CustomUser, related_name='member_of_businesses')
     category = models.CharField(max_length=200, null=True)
+    terms = models.TextField(null=True, blank=True)  # New field to store generated terms
 
 class CallCenter(models.Model):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='call_centers')
@@ -46,4 +49,3 @@ class ProjectResult(models.Model):
 
     def __str__(self):
         return f"Result for {self.business_name} on {self.created_at}"
-

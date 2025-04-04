@@ -1,0 +1,419 @@
+﻿﻿{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div id="page-wrapper">
+    <div id="page-inner">
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Your Tasks</h2>   
+                <h5>Welcome {{user.username}} , Love to see you back. </h5>
+            </div>
+        </div>
+        <hr />
+        <div class="row">
+            <div class="col-md-12">
+                <!-- Advanced Tables -->
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        Advanced Tables
+                    </div>
+                    <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered table-hover" id="dataTables-example">
+                                <thead>
+                                    <tr>
+                                        <th>Task Name</th>
+                                        <th>Status</th>
+                                        <th>Upload File</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for task in tasks %}
+                                    <tr class="odd gradeX">
+                                        <td>{{ task.task_name }}</td>
+                                        <td>
+                                            <input 
+                                                type="checkbox" 
+                                                data-task-id="{{ task.id }}" 
+                                                onchange="handleTaskToggle(this)" 
+                                                {% if task.is_done %}checked{% endif %} 
+                                            />
+                                        </td>
+                                        <td>
+                                            {% if is_pro_user or task.assigned_to == user %}
+                                                {% if task.uploaded_file %}
+                                                    <a href="{{ task.uploaded_file.url }}" target="_blank">{{ task.uploaded_file.name }}</a>
+                                                {% else %}
+                                                    <form action="{% url 'tasks:upload_task_file' task.id %}" method="post" enctype="multipart/form-data">
+                                                        {% csrf_token %}
+                                                        <input type="file" name="file" required />
+                                                        <button type="submit" class="btn btn-sm btn-primary">Upload</button>
+                                                    </form>
+                                                {% endif %}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!--End Advanced Tables -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+      <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Free Bootstrap Admin Template : Binary Admin</title>
+	<!-- BOOTSTRAP STYLES-->
+    <link href="../static/bootstrap.css" rel="stylesheet" />
+     <!-- FONTAWESOME STYLES-->
+    <link href="../static/font-awesome.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+     <!-- MORRIS CHART STYLES-->
+   
+        <!-- CUSTOM STYLES-->
+    <link href="../static/custom.css" rel="stylesheet" />
+     <!-- GOOGLE FONTS-->
+   <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css' />
+     <!-- TABLE STYLES-->
+    <link href="../static/js/dataTables/dataTables.bootstrap.css" rel="stylesheet" />
+    <style>
+        /* Style the checkbox */
+        input[type="checkbox"] {
+            accent-color: black; /* This changes the checkbox color */
+            width: 20px;         /* Adjust size if needed */
+            height: 20px;
+        }
+    
+        /* Optional: Add hover effect for better user experience */
+        input[type="checkbox"]:hover {
+            cursor: pointer;
+            box-shadow: 0 0 5px black;
+        }
+    </style>
+</head>
+<body>
+    <div id="wrapper">
+        <nav class="navbar navbar-default navbar-cls-top " role="navigation" style="margin-bottom: 0">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".sidebar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                {% if business_name is not None %}
+                    <a class="navbar-brand" href="{% url 'welcome:dashboard' %}">{{ business_name }}</a>
+                {% else %}
+                    <a class="navbar-brand" href="{% url 'welcome:dashboard' %}">Task Manager</a>
+                {% endif %}            </div>
+  <div style="color: white;
+padding: 15px 50px 5px 50px;
+float: right;
+font-size: 16px;">{% if user.is_authenticated %}<a href="/logout" class="btn btn-danger square-btn-adjust">Logout</a>
+{% else %}
+<a href="/login" class="btn btn-danger square-btn-adjust">Login</a>
+<a href="/register" class="btn btn-danger square-btn-adjust">Register</a>
+{% endif %} </div>
+        </nav>   
+           <!-- /. NAV TOP  -->
+                <nav class="navbar-default navbar-side" role="navigation">
+            <div class="sidebar-collapse">
+                <ul class="nav" id="main-menu">
+				<li class="text-center">
+                    <img src="../static/img/netfull.png" class="user-image img-responsive"/>
+                </li>
+            
+                <li>
+                    <a class="active-menu" href="{% url 'welcome:dashboard' %}"><i class="fa fa-dashboard fa-3x"></i> Dashboard</a>
+                </li>
+                
+                <li>
+                    <a href="{% url 'tasks:user_tasks_view' %}"><i class="fa fa-tasks fa-3x"></i> Tasks</a>
+                </li>
+                <li>
+                    <a href="{% url 'tasks:create_task' %}"><i class="fa fa-plus fa-3x"></i> Create Task</a>
+                </li>
+                <li>
+                    <a href="{% url 'projects:create_project' %}"><i class="fa fa-plus-circle fa-3x"></i> Create Project</a>
+                </li>
+                <li>
+                    <a href="{% url 'projects:user_projects_view' %}"><i class="fa fa-briefcase fa-3x"></i> Projects</a>
+                </li>
+                </ul>
+               
+            </div>
+            
+        </nav>  
+        <!-- /. NAV SIDE  -->
+        <div id="page-wrapper" >
+            <div id="page-inner">
+                <div class="row">
+                    <div class="col-md-12">
+                     <h2>Your Tasks</h2>   
+                        <h5>Welcome {{user.username}} , Love to see you back. </h5>
+                       
+                    </div>
+                </div>
+                 <!-- /. ROW  -->
+                 <hr />
+               
+            <div class="row">
+                <div class="col-md-12">
+                    <!-- Advanced Tables -->
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                             Advanced Tables
+                        </div>
+                        <div class="panel-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered table-hover" id="dataTables-example">
+                                    <thead>
+                                        <tr>
+                                            <th>Task Name</th>
+                                            <th>Status</th>
+                                            <th>Upload File</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for task in tasks %}
+                                        <tr class="odd gradeX">
+                                            <td>{{ task.task_name }}</td>
+                                            <td>
+                                                <input 
+                                                    type="checkbox" 
+                                                    data-task-id="{{ task.id }}" 
+                                                    onchange="handleTaskToggle(this)" 
+                                                    {% if task.is_done %}checked{% endif %} 
+                                                />
+                                            </td>
+                                            <td>
+                                                {% if is_pro_user or task.assigned_to == user %}
+                                                    {% if task.uploaded_file %}
+                                                        <a href="{{ task.uploaded_file.url }}" target="_blank">{{ task.uploaded_file.name }}</a>
+                                                    {% else %}
+                                                        <form action="{% url 'upload_task_file' task.id %}" method="post" enctype="multipart/form-data">
+                                                            {% csrf_token %}
+                                                            <input type="file" name="file" required />
+                                                            <button type="submit" class="btn btn-sm btn-primary">Upload</button>
+                                                        </form>
+                                                    {% endif %}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </td>
+                                            
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    
+                                </table>
+                            </div>
+                            
+                        </div>
+                    </div>
+                    <!--End Advanced Tables -->
+                </div>
+            </div>
+                    <!--  end  Context Classes  -->
+                </div>
+            </div>
+                <!-- /. ROW  -->
+        </div>
+               
+    </div>
+             <!-- /. PAGE INNER  -->
+            </div>
+
+            <!-- footer -->
+<style>
+    /* Footer styling */
+    footer {
+      background-color: #222; /* Dark background color */
+      color: #ecf0f1; /* Light text color for contrast */
+      padding: 40px 0; /* Increased padding for a taller footer */
+      font-family: Arial, sans-serif;
+    }
+  
+    footer .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 15px;
+    }
+  
+    footer .social-icons {
+      list-style: none;
+      padding: 0;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+  
+    footer .social-icons li {
+      display: inline-block;
+      margin-right: 15px;
+    }
+  
+    footer .social-icons a {
+      color: #ecf0f1; /* Light color for text */
+      text-decoration: none;
+      font-size: 18px;
+      transition: color 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+    }
+  
+    footer .social-icons a i {
+      margin-right: 8px; /* Space between icon and text */
+      font-size: 20px; /* Icon size */
+    }
+  
+    footer .social-icons a:hover {
+      color: #3498db; /* Accent color (blue) on hover */
+    }
+  
+    footer .copyright-text {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  
+    footer .copyright-text p {
+      margin: 0;
+      color: #ecf0f1;
+    }
+  </style>
+  
+  
+    
+<footer>
+    <footer>
+        <div class="container">
+          <div class="row">
+            <div class="col-lg-12">
+              <ul class="social-icons">
+                <li><a href="https://www.facebook.com/profile.php?id=61561751296406"><i class="fab fa-facebook"></i> Facebook</a></li>
+                <li><a href="https://www.instagram.com/netfull1/"><i class="fab fa-instagram"></i> Instagram</a></li>
+              </ul>
+            </div>
+            <div class="col-lg-12">
+              <div class="copyright-text">
+                <p>Made By Net Full</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+<!-- footer ends -->
+
+            <script>
+                function handleTaskToggle(checkbox) {
+                    const taskId = checkbox.dataset.taskId;
+                    const isDone = checkbox.checked;
+            
+                    fetch(`/update_task_status/${taskId}/`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken"),
+                        },
+                        body: JSON.stringify({ is_done: isDone }),
+                    })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error("Failed to update task status.");
+                        }
+                        return response.json();
+                    })
+                    .then((data) => {
+                        console.log("Task status updated:", data);
+                    })
+                    .catch((error) => {
+                        console.error("Error updating task status:", error);
+                        checkbox.checked = !isDone; // Revert checkbox on error
+                    });
+                }
+            
+
+                document.addEventListener('DOMContentLoaded', () => {
+        // Attach event listeners to all upload forms
+        document.querySelectorAll('form[action*="upload_task_file"]').forEach(form => {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault(); // Prevent default form submission
+                
+                const formData = new FormData(this); // Collect form data
+                const actionUrl = this.action; // Get the form's action URL
+                
+                fetch(actionUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken') // Add CSRF token
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('File upload failed');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert(data.message || 'File uploaded successfully');
+                    location.reload(); // Reload the page to reflect changes
+                })
+                .catch(error => {
+                    console.error('Error during file upload:', error);
+                    alert('An error occurred during file upload.');
+                });
+            });
+        });
+    });
+
+
+
+                function getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== "") {
+                        const cookies = document.cookie.split(";");
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.startsWith(name + "=")) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                }
+            </script>
+    <!-- JQUERY SCRIPTS -->
+    <script src="../static/js/jquery-1.10.2.js"></script>
+      <!-- BOOTSTRAP SCRIPTS -->
+    <script src="../static/js/bootstrap.min.js"></script>
+    <!-- METISMENU SCRIPTS -->
+    <script src="../static/js/jquery.metisMenu.js"></script>
+     <!-- DATA TABLE SCRIPTS -->
+    <script src="../static/js/dataTables/jquery.dataTables.js"></script>
+    <script src="../static/js/dataTables/dataTables.bootstrap.js"></script>
+        <script>
+            $(document).ready(function () {
+                $('#dataTables-example').dataTable();
+            });
+    </script>
+         <!-- CUSTOM SCRIPTS -->
+    <script src="../static/js/custom.js"></script>
+    
+   
+</body>
+</html>

@@ -1,203 +1,73 @@
-﻿﻿<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-      <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Projects</title>
-	<!-- BOOTSTRAP STYLES-->
-    <link href="../static/bootstrap.css" rel="stylesheet" />
-     <!-- FONTAWESOME STYLES-->
-    <link href="../static/font-awesome.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+﻿﻿{% extends "base.html" %}
+{% block page_title %}Projects{% endblock %}
 
-        <!-- CUSTOM STYLES-->
-    <link href="../static/custom.css" rel="stylesheet" />
-     <!-- GOOGLE FONTS-->
-   <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css' />
-</head>
-<body>
-    <div id="wrapper">
-        <nav class="navbar navbar-default navbar-cls-top " role="navigation" style="margin-bottom: 0">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".sidebar-collapse">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                {% if business_name is not None %}
-                    <a class="navbar-brand" href="{% url 'dashboard' %}">{{ business_name }}</a>
-                {% else %}
-                    <a class="navbar-brand" href="{% url 'dashboard' %}">Task Manager</a>
-                {% endif %}            </div>
-  <div style="color: white;
-padding: 15px 50px 5px 50px;
-float: right;
-font-size: 16px;">{% if user.is_authenticated %}<a href="/logout" class="btn btn-danger square-btn-adjust">Logout</a>
-{% else %}
-<a href="/login" class="btn btn-danger square-btn-adjust">Login</a>
-<a href="/register" class="btn btn-danger square-btn-adjust">Register</a>
-{% endif %} </div>
-        </nav>   
-           <!-- /. NAV TOP  -->
-                <nav class="navbar-default navbar-side" role="navigation">
-            <div class="sidebar-collapse">
-                <ul class="nav" id="main-menu">
-				<li class="text-center">
-                    <img src="../static/img/netfull.png" class="user-image img-responsive"/>
-                </li>
-            
-                <li>
-                    <a class="active-menu" href="{% url 'dashboard' %}"><i class="fa fa-dashboard fa-3x"></i> Dashboard</a>
-                </li>
-                
-                <li>
-                    <a href="{% url 'user_tasks_view' %}"><i class="fa fa-tasks fa-3x"></i> Tasks</a>
-                </li>
-                <li>
-                    <a href="{% url 'create_task' %}"><i class="fa fa-plus fa-3x"></i> Create Task</a>
-                </li>
-                <li>
-                    <a href="{% url 'create_project' %}"><i class="fa fa-plus-circle fa-3x"></i> Create Project</a>
-                </li>
-                <li>
-                    <a href="{% url 'user_projects_view' %}"><i class="fa fa-briefcase fa-3x"></i> Projects</a>
-                </li>
-                </ul>
-               
-            </div>
-            
-        </nav>  
-        <!-- /. NAV SIDE  -->
-        <div id="page-wrapper" >
-            <div id="page-inner">
-                <div class="row">
-                    <div class="col-md-12">
-                     <h2>Your Projects</h2>   
-                        <h5>Welcome {{user.username}} , Love to see you back. </h5>
-                       
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card my-4">
+      <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
+        <div class="bg-gradient-dark shadow-dark border-radius-lg pt-4 pb-3 d-flex justify-content-between align-items-center">
+          <h6 class="text-white text-capitalize ps-3 mb-0">Projects table</h6>
+          <a href="/create-project" class="btn btn-outline-primary btn-sm mb-0 me-3">Create Project</a>
+        </div>
+      </div>
+      <div class="card-body px-0 pb-2">
+        <div class="table-responsive p-0">
+          <table class="table align-items-center justify-content-center mb-0">
+            <thead>
+              <tr>
+                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Project</th>
+                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Members Number</th>
+                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Status</th>
+                <th class="text-uppercase text-secondary text-xxs font-weight-bolder text-center opacity-7 ps-2">Completion</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in project_data %}
+              <tr>
+                <td>
+                  <div class="d-flex px-2">
+                    <div class="my-auto">
+                      <h6 class="mb-0 text-sm">
+                        <a href="{% url 'projects:project_detail' item.project.id %}" class="text-decoration-none">
+                          {{ item.project.name }}
+                        </a>
+                      </h6>
                     </div>
-                </div>
-                 <!-- /. ROW  -->
-                 <hr />
-                 {% for project in projects %}
-                 <div class="row">
-                     <div class="col-md-4 col-sm-4">
-                         <div class="panel panel-success">
-                             <div class="panel-heading">
-                                 {{ project.name }}
-                             </div>
-                             <div class="panel-body">
-                                 Members: {{ project.members.count }}
-                             </div>
-                             <div class="panel-footer">
-                                 {{ project.end_date }}
-                                 <a href="{% url 'project_detail' project.id %}" class="btn btn-danger square-btn-adjust" >View Project</a>
-                             </div>
-                         </div>
-                     </div>
-                 </div>
-                 {% endfor %}
-                 
-
+                  </div>
+                </td>
+                <td>
+                  <p class="text-sm font-weight-bold mb-0">{{ members_count }}</p>
+                </td>
+                <td>
+                  <span class="text-xs font-weight-bold">done</span>
+                </td>
+                <td class="align-middle text-center">
+                  <div class="d-flex align-items-center justify-content-center">
+                    <span class="me-2 text-xs font-weight-bold">{{ item.completion_percentage }}%</span>
+                    <div>
+                      <div class="progress">
+                        <div class="progress-bar bg-gradient-success" role="progressbar"
+                             aria-valuenow="{{ item.completion_percentage }}" aria-valuemin="0" aria-valuemax="100"
+                             style="width: {{ item.completion_percentage }}%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="align-middle">
+                  <button class="btn btn-link text-secondary mb-0" aria-haspopup="true" aria-expanded="false">
+                    <i class="fa fa-ellipsis-v text-xs"></i>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            
+          </table>
+        </div>
+      </div>
     </div>
-             <!-- /. PAGE INNER  -->
-            </div>
-         <!-- /. PAGE WRAPPER  -->
-        </div>
-     <!-- /. WRAPPER  -->
-
-
-     <!-- footer -->
-<style>
-    /* Footer styling */
-    footer {
-      background-color: #222; /* Dark background color */
-      color: #ecf0f1; /* Light text color for contrast */
-      padding: 40px 0; /* Increased padding for a taller footer */
-      font-family: Arial, sans-serif;
-    }
-  
-    footer .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 15px;
-    }
-  
-    footer .social-icons {
-      list-style: none;
-      padding: 0;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-  
-    footer .social-icons li {
-      display: inline-block;
-      margin-right: 15px;
-    }
-  
-    footer .social-icons a {
-      color: #ecf0f1; /* Light color for text */
-      text-decoration: none;
-      font-size: 18px;
-      transition: color 0.3s ease;
-      display: inline-flex;
-      align-items: center;
-    }
-  
-    footer .social-icons a i {
-      margin-right: 8px; /* Space between icon and text */
-      font-size: 20px; /* Icon size */
-    }
-  
-    footer .social-icons a:hover {
-      color: #3498db; /* Accent color (blue) on hover */
-    }
-  
-    footer .copyright-text {
-      text-align: center;
-      font-size: 14px;
-      margin-top: 10px;
-    }
-  
-    footer .copyright-text p {
-      margin: 0;
-      color: #ecf0f1;
-    }
-  </style>
-  
-  
-    
-<footer>
-    <footer>
-        <div class="container">
-          <div class="row">
-            <div class="col-lg-12">
-              <ul class="social-icons">
-                <li><a href="https://www.facebook.com/profile.php?id=61561751296406"><i class="fab fa-facebook"></i> Facebook</a></li>
-                <li><a href="https://www.instagram.com/netfull1/"><i class="fab fa-instagram"></i> Instagram</a></li>
-              </ul>
-            </div>
-            <div class="col-lg-12">
-              <div class="copyright-text">
-                <p>Made By Net Full</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
-<!-- footer ends -->
-
-    <!-- SCRIPTS -AT THE BOTOM TO REDUCE THE LOAD TIME-->
-    <!-- JQUERY SCRIPTS -->
-    <script src="../static/js/jquery-1.10.2.js"></script>
-      <!-- BOOTSTRAP SCRIPTS -->
-    <script src="../static/js/bootstrap.min.js"></script>
-    <!-- METISMENU SCRIPTS -->
-    <script src="../static/js/jquery.metisMenu.js"></script>
-      <!-- CUSTOM SCRIPTS -->
-    <script src="../static/js/custom.js"></script>
-    
-   
-</body>
-</html>
+  </div>
+</div>
+{% endblock %}

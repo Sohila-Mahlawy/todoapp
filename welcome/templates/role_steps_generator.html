@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block page_title %}
+Generate Role Steps
+{% endblock %}
+
+{% block content %}
+<div class="container" style="background-color: white; padding: 20px; border-radius: 10px;">
+    <div id="page-wrapper">
+        <div id="page-inner">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>Generate Role Steps</h2>
+                    {% if messages %}
+                        <div class="alert alert-danger">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <style>
+                .role-steps-section {
+                    margin: 2rem 0;
+                    padding: 1.5rem;
+                    border-left: 4px solid #ff9800;
+                    background: #f8f9fa;
+                }
+                .typewriter-role-steps {
+                    font-family: 'Courier New', monospace;
+                    white-space: pre-wrap;
+                    color: #2c3e50;
+                }
+                .generate_button {
+                    display: block;
+                    width: 100%;
+                    padding: clamp(10px, 3vw, 12px);
+                    font-size: clamp(14px, 2vw, 16px);
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    background-color: #e91e63;  /* Pink color */
+                    color: white;
+                    transition: background 0.3s;
+                }
+
+                .generate_button:hover {
+                    background-color: #e91e63;  /* Pink color on hover */
+                }
+            </style>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="user_name">User Name:</label>
+                    <input type="text" class="form-control" id="user_name" name="user_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="user_role">User Role:</label>
+                    <input type="text" class="form-control" id="user_role" name="user_role" required>
+                </div>
+                <div class="form-group">
+                    <label for="project_name">Project Name:</label>
+                    <input type="text" class="form-control" id="project_name" name="project_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="project_description">Project Description:</label>
+                    <textarea class="form-control" id="project_description" name="project_description" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="generate_button">Generate</button>
+            </form>
+
+            {% if role_steps %}
+                <div class="role-steps-section">
+                    <h3>Role Steps:</h3>
+                    <div id="role-steps-content" class="typewriter-role-steps"></div>
+                </div>
+                
+                {{ role_steps|json_script:"role-steps-data" }}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const roleStepsContent = JSON.parse(document.getElementById('role-steps-data').textContent);
+                        const roleStepsElement = document.getElementById('role-steps-content');
+                        let index = 0;
+                        let htmlBuffer = '';
+                        
+                        function typeRoleSteps() {
+                            if (index < roleStepsContent.length) {
+                                htmlBuffer += roleStepsContent.charAt(index);
+                                roleStepsElement.innerHTML = htmlBuffer;
+                                index++;
+                                setTimeout(typeRoleSteps, 20);
+                            }
+                        }
+                        
+                        roleStepsElement.innerHTML = '';
+                        setTimeout(typeRoleSteps, 500);
+                    });
+                </script>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

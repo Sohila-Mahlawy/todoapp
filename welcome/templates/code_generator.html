@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block page_title %}
+Code Generator{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div id="page-wrapper">
+        <div id="page-inner">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>Code Snippet Generator</h2>
+                    {% if messages %}
+                        <div class="alert alert-danger">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <style>
+                .container {
+                    max-width: clamp(300px, 90%, 900px);
+                    margin: clamp(20px, 5vw, 40px) auto;
+                    padding: clamp(15px, 4vw, 20px);
+                    background-color: #fff;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    border-radius: 8px;
+                }
+
+                .code-section {
+                    margin: 2rem 0;
+                    padding: 1.5rem;
+                    background: #f5f5f5;
+                    border-radius: 4px;
+                }
+
+                pre {
+                    background: #2d2d2d;
+                    color: #f8f8f2;
+                    padding: 1rem;
+                    border-radius: 4px;
+                    overflow-x: auto;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                }
+
+                .typewriter-code {
+                    overflow: hidden;
+                    position: relative;
+                    padding-left: 3px; /* Add space for cursor */
+                }
+
+                .typing-cursor::after {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    height: 100%;
+                    width: 2px;
+                    background-color: #4caf50;
+                    animation: blink-caret 0.75s step-end;
+                }
+
+                @keyframes blink-caret {
+                    from, to { opacity: 0 }
+                    50% { opacity: 1 }
+                }
+
+                .generate_button {
+                    display: block;
+                    width: 100%;
+                    padding: clamp(10px, 3vw, 12px);
+                    font-size: clamp(14px, 2vw, 16px);
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    background-color: #e91e63;  /* Red color */
+                    color: white;
+                    transition: background 0.3s;
+                }
+
+                .generate_button:hover {
+                    background-color: #e91e63;  /* Red color on hover */
+                }
+            </style>
+
+            <form method="POST">
+                {% csrf_token %}
+                <select name="language" class="form-control language-selector" required>
+                    <option value="">Select Language</option>
+                    <option value="Python" {% if request.POST.language == "Python" %}selected{% endif %}>Python</option>
+                    <option value="JavaScript" {% if request.POST.language == "JavaScript" %}selected{% endif %}>JavaScript</option>
+                    <option value="Java" {% if request.POST.language == "Java" %}selected{% endif %}>Java</option>
+                    <option value="C++" {% if request.POST.language == "C++" %}selected{% endif %}>C++</option>
+                </select>
+                <br>
+                <textarea name="task_description" 
+                          class="form-control"
+                          placeholder="Describe the programming task (e.g., 'Function that reverses a string')"
+                          required
+                          rows="3">{% if request.POST.task_description %}{{ request.POST.task_description }}{% endif %}</textarea>
+                <br>
+                <button type="submit" class="generate_button">Generate Code</button>
+            </form>
+
+            {% if code_snippet %}
+                <div class="code-section">
+                    <h3>Generated Code Snippet</h3>
+                    <div id="code-output" class="typewriter-code"></div>
+                </div>
+                
+                {{ code_snippet|json_script:"code-data" }}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const codeOutput = document.getElementById('code-output');
+    const codeData = document.getElementById('code-data');
+
+    if (codeOutput && codeData) {
+        const originalCode = JSON.parse(codeData.textContent);
+        let index = 0;
+        let htmlBuffer = '';
+
+        const cursor = document.createElement('div');
+        cursor.className = 'typing-cursor';
+
+        function typeCode() {
+            if (index < originalCode.length) {
+                htmlBuffer += originalCode.charAt(index);
+                codeOutput.innerHTML = htmlBuffer;
+                codeOutput.appendChild(cursor);
+                index++;
+                setTimeout(typeCode, 20);
+            } else {
+                codeOutput.removeChild(cursor);
+            }
+        }
+
+        codeOutput.innerHTML = '';
+        codeOutput.appendChild(cursor);
+        setTimeout(typeCode, 500);
+    }
+});
+</script>
+
+{% endblock %}

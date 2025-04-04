@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block page_title %}Tasks{% endblock %}
+
+{% block content %}
+    <div class="container-fluid py-2">
+      <div class="row">
+        <div class="col-12">
+          <div class="card my-4">
+            <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
+              <div class="bg-gradient-dark shadow-dark border-radius-lg pt-4 pb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="text-white text-capitalize ps-3">Tasks table</h6>
+                  <a href="/create-task" class="btn btn-outline-primary btn-sm mb-0 me-3">Create Task</a>
+                </div>
+              </div>
+            </div>
+            <div class="card-body px-0 pb-2">
+              <div class="table-responsive p-0">
+                <table class="table align-items-center mb-0">
+                  <thead>
+                    <tr>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Task Name</th>
+                      {% if request.user.is_authenticated and request.user.subscription_type in 'pro,Pro,business,Business' %}
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Assigned to</th>
+                      {% endif %}
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Created At</th>
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Complete</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for task in tasks %}
+                    <tr>
+                      <td>
+                        <div class="d-flex px-2 py-1">
+                          <div class="d-flex flex-column justify-content-center">
+                            <h6 class="mb-0 text-sm">{{task}}</h6>
+                          </div>
+                        </div>
+                      </td>
+                      {% if request.user.is_authenticated and request.user.subscription_type in 'pro,Pro,business,Business' %}
+                      <td>
+                        <p class="text-xs font-weight-bold mb-0">{{task.assigned_to}}</p>
+                      </td>
+                      {% endif %}
+                      <td class="align-middle text-center text-sm">
+                        <span class="badge badge-sm {% if task.is_done %}bg-gradient-success{% else %}bg-gradient-warning{% endif %}">
+                          {% if task.is_done %}Done{% else %}In Progress{% endif %}
+                        </span>
+                      </td>
+                      <td class="align-middle text-center">
+                        <span class="text-secondary text-xs font-weight-bold">{{task.created_at}}</span>
+                      </td>
+                      <td class="align-middle text-center">
+                        <div class="form-check d-flex justify-content-center align-items-center">
+                            <input class="form-check-input task-checkbox" 
+                                   type="checkbox" 
+                                   id="task-{{task.id}}"
+                                   data-task-id="{{task.id}}"
+                                   title="Mark task as complete"
+                                   {% if task.is_done %}checked{% endif %}>
+                            <label class="form-check-label visually-hidden" for="task-{{task.id}}">
+                                Mark task as complete
+                            </label>
+                        </div>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add this JavaScript at the bottom of your template -->
+    {% block scripts %}
+    <script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('.task-checkbox');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const taskId = this.dataset.taskId;
+                const currentState = this.checked;
+                
+                // Toggle visual state immediately for better UX
+                this.checked = !currentState;
+                
+                // Update checkbox appearance
+                if (this.checked) {
+                    this.classList.add('bg-gradient-success');
+                } else {
+                    this.classList.remove('bg-gradient-success');
+                }
+                
+                fetch(`/update-task-status/${taskId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Server response:', data);
+                    if (data.status === 'success') {
+                        // Update the status badge
+                        const statusBadge = this.closest('tr').querySelector('.badge');
+                        if (data.is_done) {
+                            statusBadge.classList.remove('bg-gradient-warning');
+                            statusBadge.classList.add('bg-gradient-success');
+                            statusBadge.textContent = 'Done';
+                            this.checked = true;
+                            this.classList.add('bg-gradient-success');
+                        } else {
+                            statusBadge.classList.remove('bg-gradient-success');
+                            statusBadge.classList.add('bg-gradient-warning');
+                            statusBadge.textContent = 'In Progress';
+                            this.checked = false;
+                            this.classList.remove('bg-gradient-success');
+                        }
+                    } else {
+                        // Revert checkbox state and appearance on error
+                        this.checked = currentState;
+                        if (currentState) {
+                            this.classList.add('bg-gradient-success');
+                        } else {
+                            this.classList.remove('bg-gradient-success');
+                        }
+                        throw new Error(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Revert checkbox state and appearance
+                    this.checked = currentState;
+                    if (currentState) {
+                        this.classList.add('bg-gradient-success');
+                    } else {
+                        this.classList.remove('bg-gradient-success');
+                    }
+                    alert('Error updating task status: ' + error.message);
+                });
+            });
+        });
+    });
+    </script>
+    {% endblock %}
+{% endblock %}

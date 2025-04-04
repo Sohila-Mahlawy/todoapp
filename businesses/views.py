@@ -23,22 +23,38 @@ from django.conf import settings
 import os
 from pathlib import Path
 from django.http import HttpResponseForbidden
+from django.core.files.storage import FileSystemStorage
+from urllib.parse import quote_plus
+import requests
+from welcome.utils import business_required,has_business_required
+from django.views.decorators.csrf import csrf_exempt
+import jwt
+import time
 
 
-@login_required
+@business_required
 def add_business(request):
     if request.method == 'POST':
         company_name = request.POST.get('company_name')
+        description = request.POST.get('description')
         icon = request.FILES['icon']
         employee_file = request.FILES['employee_file']
         category = request.POST.get('category')
-        # Save the icon to the 'uploaded_icons' directory
+
+        # Save the icon and employee file
         icon_fs = FileSystemStorage(location='media/uploaded_icons')
         icon_name = icon_fs.save(icon.name, icon)
 
-        # Save the employee file to the 'uploaded_excel' directory
         excel_fs = FileSystemStorage(location='media/uploaded_excel')
         employee_file_name = excel_fs.save(employee_file.name, employee_file)
+
+        # Generate Terms and Conditions
+        encoded_name = quote_plus(company_name)
+        encoded_description = quote_plus(description)
+        api_url = f"https://www.ibrahimfakhry.com/generate_terms_policies?company_name={encoded_name}&company_description={encoded_description}"
+
+        response = requests.get(api_url)
+        generated_terms = response.json().get('terms_policies', '') if response.status_code == 200 else ''
 
         # Create a new Business instance
         business = Business.objects.create(
@@ -46,50 +62,44 @@ def add_business(request):
             icon=f'uploaded_icons/{icon_name}',
             employee_file=f'uploaded_excel/{employee_file_name}',
             user=request.user,
-            category=category
+            category=category,
+            terms=generated_terms  # Save generated terms in the database
         )
 
         # Process the Excel file and get the parsed data
         employee_file_path = excel_fs.path(employee_file_name)
-
         parsed_data = process_excel(request, employee_file_path)
 
         # Render the review template with all necessary context
         return render(request, 'businesses/review_business_data.html', {
             'company_name': company_name,
             'icon_name': icon_name,
-            'data': parsed_data,  # Pass the parsed data as 'data'
-            'business_id': business.id
+            'data': parsed_data,
+            'business_id': business.id,
+            'terms': generated_terms  # Pass the terms to the review page
         })
 
     return render(request, 'businesses/add_business.html')
 
 
-def business_members_view(request, business_id):
-    """
-    View to render members of a specific business.
-    """
-    business = get_object_or_404(Business, id=business_id)
-    members = business.members.all()  # Get all members associated with the business
-
-    # Collect member details
-    member_details = []
-    for member in members:
-        member_details.append({
-            'name': member.username,  # Assuming you want to show the username
-            'email': member.email,
-            'role': member.role,  # Assuming 'role' is a field in CustomUser
-            'job_description': member.profile.job_description if hasattr(member, 'profile') else 'No job description',  # Accessing profile details
-            'status': member.profile.status if hasattr(member, 'profile') else 'No status',  # Accessing profile status
-        })
-
+@has_business_required
+def business_members_view(request):
+    # Get the business associated with the current user
+    user_business = get_object_or_404(Business, user=request.user)
+    
+    # Get the business members with their related details
+    members = user_business.members.select_related(
+        'profile', 'userprofile'
+    ).all()
+    
     context = {
-        'business': business,
-        'members': member_details
+        'business': user_business,
+        'members': members
     }
     return render(request, 'businesses/business_members.html', context)
 
-@login_required
+@business_required
+@has_business_required
 def process_business_data(request):
 
     if request.method == 'POST':
@@ -113,17 +123,17 @@ def process_business_data(request):
             else:
                 messages.warning(request, "No new user accounts were created.")
 
-            return redirect('dashboard')
+            return redirect('welcome:dashboard')
 
         except Exception as e:
             print(f"Error in process_business_data: {str(e)}")  # Debug print
             messages.error(request, f"Error processing business data: {str(e)}")
-            return redirect('add_business')
+            return redirect('businesses:add_business')
 
-    return redirect('add_business')
+    return redirect('businesses:add_business')
 
 
-@login_required
+@has_business_required
 def upload_call_center(request):
     if request.method == 'POST':
         form = CallCenterForm(request.POST, request.FILES)
@@ -139,7 +149,7 @@ def upload_call_center(request):
     return render(request, 'businesses/upload_call_center.html', {'form': form})
 
 
-@login_required
+@has_business_required
 def upload_finance(request):
     if request.method == 'POST' and request.FILES['excel_file']:
         excel_file = request.FILES['excel_file']
@@ -174,11 +184,11 @@ def upload_finance(request):
                 # Handle conversion errors
                 return render(request, 'businesses/upload_finacne.html', {'error': f'Error in row {index + 1}: {e}'})
 
-        return redirect(reverse('dashboard'))
+        return redirect(reverse('welcome:dashboard'))
 
     return render(request, 'businesses/upload_finance.html')
 
-@login_required
+@has_business_required
 def finance_records_list(request):
     # Retrieve all finance records for the logged-in user's business
     try:
@@ -187,7 +197,7 @@ def finance_records_list(request):
     except Business.DoesNotExist:
         finance_records = []
 
-    return render(request, 'finance_records_list.html', {'finance_records': finance_records})
+    return render(request, 'businesses/finance_records_list.html', {'finance_records': finance_records})
 
 
 import base64
@@ -235,12 +245,13 @@ def submit_complaint(request):
         )
 
         # Redirect to the desired URL after submission
-        return redirect('http://127.0.0.1:8000/')
+        return redirect('welcome:dashboard')
 
     return render(request, 'businesses/submit_complaint.html')
 
 
 client = OpenAI(api_key="sk-6893bfcc17c640ec8c89de05ac8e2c7b", base_url="https://api.deepseek.com")
+@business_required
 def api(request, business_id):
     if request.method == "POST":
         # Get form data
@@ -305,8 +316,8 @@ def api(request, business_id):
     # Render form page with business context
     return render(request, "businesses/api_form.html", {'business': business})
 
-# Function to change user role
-@login_required
+
+@has_business_required
 def change_user_role(request, user_id):
     if request.method == 'POST':
         user = get_object_or_404(CustomUser, id=user_id)
@@ -317,12 +328,12 @@ def change_user_role(request, user_id):
         user.save()
 
         messages.success(request, f"User role changed to {new_role}.")
-        return redirect('dashboard')  # Redirect to the dashboard or appropriate page
+        return redirect('welcome:dashboard')  # Redirect to the dashboard or appropriate page
 
-    return redirect('dashboard')  # Fallback redirect
+    return redirect('welcome:dashboard')  # Fallback redirect
 
 
-
+@business_required
 def process_excel(request, file_path):
     try:
         # Construct the full file path
@@ -386,7 +397,7 @@ def process_excel(request, file_path):
         messages.error(request, f"Error processing Excel file: {str(e)}")
         return []
 
-
+@business_required
 def create_accounts_from_excel(file_path, business):
     try:
         # Read the Excel file
@@ -480,6 +491,7 @@ def create_accounts_from_excel(file_path, business):
         print(f"Error in create_accounts_from_excel: {str(e)}")
         raise
 
+@business_required
 def create_members_excel(members_data):
     # Create Excel file with member data
     from openpyxl import Workbook
@@ -492,15 +504,17 @@ def create_members_excel(members_data):
 
     wb.save(os.path.join(settings.MEDIA_ROOT, 'created_members.xlsx'))
 
-
+@business_required
 def get_progress(request):
     # Return current progress from cache
     progress = cache.get('progress', 0)
     return JsonResponse({'progress': progress})
 
+@business_required
 def loading_page(request):
     return render(request, 'businesses/loading_page.html')  # Ensure this is the loading page template
 
+@business_required
 def send_user_credentials_email(email, password, name):
     """Sends email with credentials (USE WITH EXTREME CAUTION)."""
 
@@ -537,9 +551,7 @@ def send_user_credentials_email(email, password, name):
     except Exception as e:
         print(f"Error sending email to {email}: {e}")
 
-
-
-@login_required
+@has_business_required
 def member_detail(request, member_id):
     # Get the member object
     member = get_object_or_404(CustomUser, id=member_id)
@@ -550,3 +562,116 @@ def member_detail(request, member_id):
     
     # Render the member detail template
     return render(request, 'businesses/member_detail.html', {'member': member})
+
+
+
+import os
+import zipfile
+from django.http import HttpResponse
+from django.conf import settings
+import ffmpeg
+
+# Define paths relative to the project
+BASE_DIR = os.path.join(settings.MEDIA_ROOT, 'call_center_zips')
+ZIP_FILE = '1.zip'  # Name of the zip file
+OUTPUT_DIR = os.path.join(settings.MEDIA_ROOT, 'unzipped_calls')
+@has_business_required
+def unzip_and_convert(request):
+    """
+    A Django view to unzip call center files and convert non-MP3 files to MP3 using ffmpeg-python.
+    """
+    # Ensure output directory exists
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    def unzip_file(zip_path, output_dir):
+        """Unzip the given zip file to the specified output directory."""
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(output_dir)
+        return f"Extracted files to {output_dir}"
+
+    def convert_to_mp3(file_path, output_dir):
+        """Convert non-MP3 audio files to MP3 format using ffmpeg-python."""
+        if not file_path.lower().endswith('.mp3'):
+            try:
+                # Generate the output file name
+                base_name = os.path.splitext(os.path.basename(file_path))[0]
+                output_file = os.path.join(output_dir, f"{base_name}.mp3")
+
+                # Use ffmpeg-python to convert the file
+                stream = ffmpeg.input(file_path)
+                stream = ffmpeg.output(stream, output_file, codec='libmp3lame', overwrite_output=True)
+                ffmpeg.run(stream)
+
+                return f"Converted {file_path} to {output_file}"
+            except Exception as e:
+                return f"Failed to convert {file_path}: {e}"
+        return f"File {file_path} is already MP3."
+
+    def process_files():
+        """Main function to unzip and process files."""
+        zip_path = os.path.join(BASE_DIR, ZIP_FILE)
+        
+        # Check if the zip file exists
+        if not os.path.exists(zip_path):
+            return f"Zip file not found: {zip_path}"
+        
+        # Unzip the file
+        result = unzip_file(zip_path, OUTPUT_DIR)
+        
+        # Process each file in the unzipped directory
+        results = [result]
+        for root, _, files in os.walk(OUTPUT_DIR):
+            for file in files:
+                file_path = os.path.join(root, file)
+                results.append(convert_to_mp3(file_path, OUTPUT_DIR))
+        
+        return "\n".join(results)
+
+    # Execute the processing
+    response_content = process_files()
+    return HttpResponse(response_content, content_type="text/plain")
+
+@has_business_required
+def online_meeting(request, room_name):
+    # Add your OAuth credentials from Google Cloud Console and GitHub
+    GOOGLE_CLIENT_ID = "your-google-client-id"
+    GITHUB_CLIENT_ID = "your-github-client-id"
+    JITSI_APP_ID = settings.JITSI_APP_ID
+    
+    context = {
+        'room_name': room_name,
+        'google_client_id': GOOGLE_CLIENT_ID,
+        'github_client_id': GITHUB_CLIENT_ID,
+    }
+    return render(request, 'businesses/meeting.html', context)
+
+@csrf_exempt
+def get_jitsi_token(request):
+    # Get credentials from settings
+    JITSI_APP_ID = settings.JITSI_APP_ID
+    JITSI_APP_SECRET = settings.JITSI_APP_SECRET
+    
+    if request.user.is_authenticated:
+        room_name = request.GET.get('room', '*')
+        
+        payload = {
+            "iss": JITSI_APP_ID,
+            "aud": "jitsi",
+            "sub": "meet.jit.si",
+            "exp": int(time.time()) + 3600,
+            "room": room_name,
+            "context": {
+                "user": {
+                    "id": str(request.user.id),
+                    "name": request.user.get_full_name() or request.user.username,
+                    "email": request.user.email,
+                    "avatar": request.user.userprofile.avatar.url if hasattr(request.user, 'userprofile') and request.user.userprofile.avatar else "",
+                    "moderator": "true" if request.user.is_staff else "false"
+                }
+            }
+        }
+        
+        token = jwt.encode(payload, JITSI_APP_SECRET, algorithm='HS256')
+        return JsonResponse({"token": token})
+    
+    return JsonResponse({"error": "Authentication required"}, status=401)

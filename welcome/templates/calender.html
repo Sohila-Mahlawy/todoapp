@@ -1,0 +1,387 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}Business Calendar{% endblock %}
+
+{% block content %}
+<style>
+  /* General Styling */
+  body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+  }
+  
+  .container {
+      max-width: 1200px; /* Adjust this if needed */
+      width: 100%;
+      margin: 0 auto; /* Center the container */
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Calendar Styling */
+  #calendar {
+    width: 100%; /* Make the calendar fill the container */
+    height: 650px; /* Set a fixed height */
+    margin: 0 auto; /* Center the calendar */
+    border-radius: 10px;
+    border: 2px solid #007bff; /* Blue border around the calendar */
+    background: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+  
+  /* FullCalendar Header */
+  .fc-toolbar-title {
+      font-size: 1.5rem !important;
+      font-weight: 600;
+      color: #333;
+  }
+  
+  /* FullCalendar Buttons */
+  .fc-button {
+      background-color: #007bff !important;
+      border: none !important;
+      color: white !important;
+      padding: 6px 12px !important;
+      border-radius: 5px !important;
+  }
+  
+  .fc-button:hover {
+      background-color: #0056b3 !important;
+  }
+  
+  /* Day Grid Styling */
+  .fc-daygrid-day {
+      border: 1px solid #ddd !important; /* Light gray border for each day */
+      background-color: #f9f9f9; /* Light background for days */
+      transition: background 0.3s ease-in-out;
+  }
+  
+  .fc-daygrid-day:hover {
+      background: #e3f2fd !important; /* Light blue hover effect */
+  }
+  
+  /* Event Styling */
+  .fc-event {
+      background-color: #28a745 !important; /* Green event background */
+      color: white !important;
+      border: none !important;
+      text-align: center;
+      padding: 5px;
+      border-radius: 5px;
+  }
+  
+  /* Modal Styling */
+  .modal-content {
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .modal-header {
+      background: #007bff;
+      color: white;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+  }
+  
+  .modal-footer {
+      background: #f8f9fa;
+  }
+  
+  /* Generate Content Calendar Button */
+  #generateContentCalendar {
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+  }
+  
+  #generateContentCalendar:hover {
+      background-color: #0056b3;
+  }
+</style>
+<!-- FullCalendar CSS -->
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+
+<div class="container mt-5">
+    <h2 class="mb-4">Business Calendar</h2>
+    <button id="generateContentCalendar" class="btn btn-primary mb-3">Generate Content Calendar</button>
+    <div id='calendar'></div>
+</div>
+
+<!-- Modal for adding events -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="eventModalLabel">Add Event</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+              <input type="text" id="eventTitle" class="form-control mb-2" placeholder="Event Title" />
+              <label for="eventStart">Start Date:</label>
+              <input type="date" id="eventStart" class="form-control mb-2" />
+              <label for="eventEnd">End Date:</label>
+              <input type="date" id="eventEnd" class="form-control" />
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" id="saveEvent">Save Event</button>
+          </div>
+      </div>
+  </div>
+</div>
+
+<!-- Modal for editing events -->
+<div class="modal fade" id="editEventModal" tabindex="-1" aria-labelledby="editEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editEventModalLabel">Edit Event</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editEventId">
+                <input type="text" id="editEventTitle" class="form-control mb-2" placeholder="Event Title" />
+                <label for="editEventStart">Start Date:</label>
+                <input type="date" id="editEventStart" class="form-control mb-2" />
+                <label for="editEventEnd">End Date:</label>
+                <input type="date" id="editEventEnd" class="form-control" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="deleteEvent">Delete Event</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="updateEvent">Update Event</button>
+            </div>
+        </div>
+    </div>
+  </div>
+
+<!-- Modal for Viewing Event Details -->
+<div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="eventDetailsModalLabel">Event Details</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="eventDetailsBody">
+              <!-- Event details will be injected here -->
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+      </div>
+  </div>
+</div>
+
+
+    <!-- Include calendar-specific scripts -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM content loaded');
+        
+        // Check if bootstrap is loaded
+        if (typeof bootstrap !== 'undefined') {
+            console.log('Bootstrap is loaded');
+        } else {
+            console.error('Bootstrap is not loaded!');
+        }
+        
+        var calendarEl = document.getElementById('calendar');
+        
+        // Check if calendarEl exists
+        if (!calendarEl) {
+            console.error('Calendar element not found!');
+            return;
+        } else {
+            console.log('Calendar element found');
+        }
+        
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            height: 650, // Set a fixed height
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            selectable: true,
+            events: '{% url "welcome:get_events" %}', // Fetch events from backend
+            select: function (info) {
+                console.log('Date selected:', info.startStr);
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    let eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    eventModal.show();
+                } else {
+                    console.error('Bootstrap Modal not available');
+                    $('#eventModal').modal('show'); // Try jQuery method as fallback
+                }
+                
+                document.getElementById('eventStart').value = info.startStr;
+                document.getElementById('eventEnd').value = info.endStr ? info.endStr : info.startStr;
+
+                document.getElementById('saveEvent').onclick = function () {
+                    let eventTitle = document.getElementById('eventTitle').value;
+                    let startDate = document.getElementById('eventStart').value;
+                    let endDate = document.getElementById('eventEnd').value || startDate;
+
+                    if (eventTitle && startDate) {
+                        fetch('{% url "welcome:add_event" %}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            },
+                            body: JSON.stringify({
+                                title: eventTitle,
+                                start_date: startDate,
+                                end_date: endDate
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                calendar.addEvent({
+                                    title: eventTitle,
+                                    start: startDate,
+                                    end: endDate,
+                                    allDay: true
+                                });
+                                eventModal.hide();
+                            } else {
+                                alert('Failed to add event');
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                    }
+                };
+            },
+            eventClick: function (info) {
+                // Fix the missing implementation
+                let eventId = info.event.id;
+                let title = info.event.title;
+                let start = info.event.start ? info.event.start.toISOString().substring(0, 10) : '';
+                let end = info.event.end ? info.event.end.toISOString().substring(0, 10) : start;
+                
+                // Populate edit modal
+                document.getElementById('editEventId').value = eventId;
+                document.getElementById('editEventTitle').value = title;
+                document.getElementById('editEventStart').value = start;
+                document.getElementById('editEventEnd').value = end;
+                
+                // Show the edit modal
+                let editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+                editModal.show();
+                
+                // Handle update button click
+                document.getElementById('updateEvent').onclick = function() {
+                    let updatedTitle = document.getElementById('editEventTitle').value;
+                    let updatedStart = document.getElementById('editEventStart').value;
+                    let updatedEnd = document.getElementById('editEventEnd').value || updatedStart;
+                    
+                    if (updatedTitle && updatedStart) {
+                        fetch('{% url "welcome:update_event" %}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            },
+                            body: JSON.stringify({
+                                id: eventId,
+                                title: updatedTitle,
+                                start_date: updatedStart,
+                                end_date: updatedEnd
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                // Update the event in the calendar
+                                info.event.setProp('title', updatedTitle);
+                                info.event.setStart(updatedStart);
+                                info.event.setEnd(updatedEnd);
+                                editModal.hide();
+                                calendar.refetchEvents();
+                            } else {
+                                alert('Failed to update event');
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                    }
+                };
+                
+                // Handle delete button click
+                document.getElementById('deleteEvent').onclick = function() {
+                    if (confirm('Are you sure you want to delete this event?')) {
+                        fetch('{% url "welcome:delete_event" %}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            },
+                            body: JSON.stringify({
+                                id: eventId
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                // Remove the event from the calendar
+                                info.event.remove();
+                                editModal.hide();
+                            } else {
+                                alert('Failed to delete event');
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                    }
+                };
+            }
+        });
+        
+        // Attempt to render calendar and handle any errors
+        try {
+            calendar.render();
+            console.log('Calendar rendered successfully');
+        } catch (error) {
+            console.error('Error rendering calendar:', error);
+        }
+        
+        // Generate Content Calendar button handler
+        document.getElementById('generateContentCalendar').addEventListener('click', function() {
+            // Add your content calendar generation logic here
+            alert('Content calendar generation feature will be implemented here');
+        });
+    });
+    </script>
+        <script src="{% static 'assets/js/core/popper.min.js' %}"></script>
+        <script src="{% static 'assets/js/core/bootstrap.min.js' %}"></script>
+        <script src="{% static 'assets/js/plugins/perfect-scrollbar.min.js' %}"></script>
+        <script src="{% static 'assets/js/plugins/smooth-scrollbar.min.js' %}"></script>
+        <script src="{% static 'assets/js/material-dashboard.min.js' %}?v=3.2.0"></script>
+
+        <!-- Then include jQuery for your notification settings -->
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+          $(document).ready(function() {
+            // Enable Bootstrap dropdowns and tooltips
+            var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'))
+            var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+              return new bootstrap.Dropdown(dropdownToggleEl)
+            })
+            </script>
+
+{% endblock %}

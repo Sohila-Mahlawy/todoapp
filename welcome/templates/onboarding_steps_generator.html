@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block page_title %}
+Generate Onboarding Steps
+{% endblock %}
+
+{% block content %}
+<div class="container" style="background-color: white; padding: 20px; border-radius: 10px;">
+    <div id="page-wrapper">
+        <div id="page-inner">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>Generate Onboarding Steps</h2>
+                    {% if messages %}
+                        <div class="alert alert-danger">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <style>
+                .onboarding-steps-section {
+                    margin: 2rem 0;
+                    padding: 1.5rem;
+                    border-left: 4px solid #ff9800;
+                    background: #f8f9fa;
+                }
+                .typewriter-onboarding-steps {
+                    font-family: 'Courier New', monospace;
+                    white-space: pre-wrap;
+                    color: #2c3e50;
+                }
+                .generate_button {
+                    display: block;
+                    width: 100%;
+                    padding: clamp(10px, 3vw, 12px);
+                    font-size: clamp(14px, 2vw, 16px);
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    background-color: #e91e63;  /* Pink color */
+                    color: white;
+                    transition: background 0.3s;
+                }
+
+                .generate_button:hover {
+                    background-color: #e91e63;  /* Pink color on hover */
+                }
+            </style>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="platform_type">Platform Type:</label>
+                    <input type="text" class="form-control" id="platform_type" name="platform_type" required>
+                </div>
+                <div class="form-group">
+                    <label for="user_role">User Role:</label>
+                    <input type="text" class="form-control" id="user_role" name="user_role" required>
+                </div>
+                <button type="submit" class="generate_button">Generate</button>
+            </form>
+
+            {% if onboarding_steps %}
+                <div class="onboarding-steps-section">
+                    <h3>Onboarding Steps for {{ user_business.name }}:</h3>
+                    <div id="onboarding-steps-content" class="typewriter-onboarding-steps"></div>
+                </div>
+                
+                {{ onboarding_steps|json_script:"onboarding-steps-data" }}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const onboardingStepsContent = JSON.parse(document.getElementById('onboarding-steps-data').textContent);
+                        const onboardingStepsElement = document.getElementById('onboarding-steps-content');
+                        let index = 0;
+                        let htmlBuffer = '';
+                        
+                        function typeOnboardingSteps() {
+                            if (index < onboardingStepsContent.length) {
+                                htmlBuffer += onboardingStepsContent.charAt(index);
+                                onboardingStepsElement.innerHTML = htmlBuffer;
+                                index++;
+                                setTimeout(typeOnboardingSteps, 20);
+                            }
+                        }
+                        
+                        onboardingStepsElement.innerHTML = '';
+                        setTimeout(typeOnboardingSteps, 500);
+                    });
+                </script>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

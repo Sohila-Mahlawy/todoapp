@@ -1,77 +1,147 @@
 {% extends "messages_base.html" %}
-
+{% block page_title %}Compose Message{% endblock %}
 {% block content %}
-<div class="container">
-    <h2>Send Message</h2>
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="recipients">Recipients:</label>
-            {{ form.recipients }}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h2 class="mb-0 h4 font-weight-bolder">Compose Message</h2>
+            <form method="post" id="sendMessageForm" class="p-4 bg-white rounded shadow-sm">
+                {% csrf_token %}
+                <div class="form-group mb-3">
+                    <label for="recipients" class="form-label fw-bold">To:</label>
+                    {{ form.recipients }}
+                </div>
+                <div class="form-group mb-3">
+                    <label for="id_subject" class="form-label fw-bold">Subject:</label>
+                    {{ form.subject }}
+                </div>
+                <div class="form-group mb-3">
+                    <label for="id_body" class="form-label fw-bold">Message:</label>
+                    <textarea id="id_body" name="body" rows="10" class="form-control"></textarea>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <button type="button" id="generateEmailBtn" class="btn btn-primary">Generate Email</button>
+
+                    <div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-paper-plane me-2"></i>Send
+                        </button>
+                        <button type="button" class="btn btn-secondary ms-2" onclick="window.history.back()">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-        <div class="form-group">
-            <label for="id_subject">Subject:</label>
-            {{ form.subject }}
-        </div>
-        <div class="form-group">
-            <label for="id_body">Message:</label>
-            {{ form.body }}
-        </div>
-        <button type="submit" class="btn btn-primary">Send</button>
-    </form>
+    </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
 <script>
-$(function() {
-    $('#recipients').autocomplete({
-        source: function(request, response) {
-            $.ajax({
-                url: $("#recipients").attr("data-autocomplete-url"),
-                data: { term: request.term },
-                success: function(data) {
-                    response(data);
-                }
-            });
-        },
-        minLength: 2,
-        messages: {
-            noResults: '', // Remove the "No results found" message
-            results: function() {} // Remove the result count message
+$(document).ready(function () {
+    $('#generateEmailBtn').click(function () {
+        var receiverName = $('#id_recipients').val();
+        var topic = $('#id_subject').val();
+
+        if (!receiverName || !topic) {
+            alert("Please fill in both 'To' and 'Subject' fields.");
+            return;
         }
+
+        // Show a loading message while generating the email
+        $('#id_body').val('Generating Email...');
+
+        // Send the request to the Django view
+        $.ajax({
+            url: '/generate_email/',  // URL to your Django view
+            method: 'GET',
+            data: {
+                receiver_name: receiverName,
+                topic: topic
+            },
+            success: function(response) {
+                if (response.email_content) {
+                    // Fill the message body with the generated email content
+                    $('#id_body').val(response.email_content);
+                } else {
+                    alert("Error generating email.");
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
+                alert("An error occurred while generating the email. Please try again later.");
+            }
+        });
+    });
+
+    // Optional: Disable the Send button until the body is filled
+    $('#sendMessageForm').on('input', 'textarea', function() {
+        var bodyContent = $(this).val().trim();
+        $('#sendMessageForm button[type="submit"]').prop('disabled', bodyContent === '');
     });
 });
 </script>
 
-<!-- Add custom CSS -->
 <style>
-    /* Style the autocomplete suggestion list */
-    .ui-autocomplete {
-        max-height: 200px;
-        overflow-y: auto;
-        overflow-x: hidden;
-        background-color: #f5f5f5;
-        border: 1px solid #ccc;
+    /* General Styles */
+    .container-fluid {
+        padding: 20px;
+        background-color: #f9fafb; /* Light gray background */
+    }
+
+    form {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+        color: #1a237e; /* Dark blue */
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-size: 1rem;
+        color: #333;
+    }
+
+    textarea {
+        resize: vertical;
+        height: 200px;
+        font-size: 1rem;
+        padding: 10px;
+        border: 1px solid #ddd;
         border-radius: 4px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
-    .ui-autocomplete li {
-        padding: 8px 12px;
-        font-size: 14px;
-        cursor: pointer;
+
+
+
+    .btn-success {
+        background-color: #4caf50; /* Green */
+        border-color: #4caf50;
     }
-    .ui-autocomplete li:hover {
-        background-color: #e0e0e0;
+
+    .btn-success:hover {
+        background-color: #388e3c;
+        border-color: #388e3c;
     }
-    /* Remove the messages */
-    .ui-autocomplete .ui-menu-item {
-        display: block;
+
+    .btn-secondary {
+        background-color: #ccc; /* Gray */
+        border-color: #ccc;
     }
-    .ui-autocomplete .ui-menu-item.ui-widget-content {
-        display: none; /* Hide the message items */
+
+    .btn-secondary:hover {
+        background-color: #aaa;
+        border-color: #aaa;
+    }
+
+    /* Icons */
+    .fas.fa-magic, .fas.fa-paper-plane, .fas.fa-times {
+        font-size: 1.25rem;
     }
 </style>
 {% endblock %}
-</body>
-</html>

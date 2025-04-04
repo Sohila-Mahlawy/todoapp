@@ -1,0 +1,198 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Checkify Plans</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{% static 'plans.css' %}">
+</head>
+<body>
+<div id="generic_price_table">   
+<section>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="price-heading clearfix">
+          <h1>Plans</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pricing Plans -->
+  <div class="col-md-4">
+    <div class="generic_content {% if user_plan == 'basic' %}active{% endif %} clearfix">
+        <div class="generic_head_price clearfix">
+            <div class="generic_head_content clearfix">
+                <div class="head_bg"></div>
+                <div class="head"><span>Basic</span></div>
+            </div>
+            <div class="generic_price_tag clearfix">
+                <span class="price"><span class="currency">Free</span></span>
+            </div>
+        </div>
+        <div class="generic_feature_list">
+            <ul>
+                <li><span>Personal task Management</span> (No Team)</li>
+                <li><span>Create & track personal tasks</span></li>
+                <li><span>No Project, No team collaboration</span></li>
+            </ul>
+        </div>
+        <div class="generic_price_btn clearfix">
+            {% if user_plan == 'basic' %}
+                <a href="javascript:void(0)" onclick="showPlanWarning('Basic')">Current Plan</a>
+            {% else %}
+                <a href="/">Choose</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="col-md-4">
+    <div class="generic_content {% if user_plan == 'pro' %}active{% endif %} clearfix">
+        <div class="generic_head_price clearfix">
+            <div class="generic_head_content clearfix">
+                <div class="head_bg"></div>
+                <div class="head"><span>Pro</span></div>
+            </div>
+            <div class="generic_price_tag clearfix">
+                <span class="price"><span class="currency">199</span><span class="sign"> EGP</span><span class="month">/Monthly</span></span>
+            </div>
+        </div>
+        <div class="generic_feature_list">
+            <ul>
+                <li><span>All Free Features</span></li>
+                <li><span>Create & Manage 1 Project</span></li>
+                <li><span>Assign & Track tasks</span></li>
+                <li><span>Unlimited File uploads</span></li>
+                <li><span>Role-Based Team Management</span></li>
+                <li><span>Project progress tracking</span></li>
+            </ul>
+        </div>
+        <div class="generic_price_btn clearfix">
+            {% if user_plan == 'pro' %}
+                <a href="javascript:void(0)" onclick="showPlanWarning('Pro')">Current Plan</a>
+            {% else %}
+                <a href="{% url 'welcome:pay' %}?plan=pro">Choose</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="col-md-4">
+    <div class="generic_content {% if user_plan == 'business' %}active{% endif %} clearfix">
+        <div class="generic_head_price clearfix">
+            <div class="generic_head_content clearfix">
+                <div class="head_bg"></div>
+                <div class="head"><span>Business</span></div>
+            </div>
+            <div class="generic_price_tag clearfix">
+                <span class="price"><span class="currency">399</span><span class="sign"> EGP</span><span class="month">/Monthly</span></span>
+                <p>29 per member</p>
+            </div>
+        </div>
+        <div class="generic_feature_list">
+            <ul>
+                <li><span>All Pro Features</span></li>
+                <li><span>Create multiple Projects</span></li>
+                <li><span>Manage multiple teams & roles</span></li>
+                <li><span>Full Business insights & reports</span></li>
+                <li><span>AI workload balancing</span></li>
+                <li><span>Advanced analytics</span></li>
+                <li><span>Custom project templates</span></li>
+                <li><span>Live chat Support</span></li>
+            </ul>
+        </div>
+        <div class="generic_price_btn clearfix">
+            {% if user_plan == 'business' %}
+                <a href="javascript:void(0)" onclick="showPlanWarning('Business')">Current Plan</a>
+            {% else %}
+                <a href="{% url 'welcome:pay' %}?plan=business">Choose</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+  <!-- Comparison Table -->
+  <div class="container">
+    <h2 class="text-center">Feature Comparison</h2>
+    <table class="table table-bordered text-center">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Basic</th>
+          <th>Pro</th>
+          <th>Business</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Personal Task Management</td>
+          <td><i class="fa fa-check text-success"></i></td>
+          <td><i class="fa fa-check text-success"></i></td>
+          <td><i class="fa fa-check text-success"></i></td>
+        </tr>
+        <tr>
+          <td>Create & Manage Projects</td>
+          <td></td>
+          <td><i class="fa fa-check text-success"></i></td>
+          <td><i class="fa fa-check text-success"></i></td>
+        </tr>
+        <tr>
+          <td>Team Collaboration</td>
+          <td></td>
+          <td><i class="fa fa-check text-success"></i></td>
+          <td><i class="fa fa-check text-success"></i></td>
+        </tr>
+        <tr>
+          <td>Role-Based Management</td>
+          <td></td>
+          <td><i class="fa fa-check text-success"></i></td>
+          <td><i class="fa fa-check text-success"></i></td>
+        </tr>
+        <tr>
+          <td>AI Workload Balancing</td>
+          <td></td>
+          <td></td>
+          <td><i class="fa fa-check text-success"></i></td>
+        </tr>
+        <tr>
+          <td>Advanced Analytics</td>
+          <td></td>
+          <td></td>
+          <td><i class="fa fa-check text-success"></i></td>
+        </tr>
+        <tr>
+          <td>Live Chat Support</td>
+          <td></td>
+          <td></td>
+          <td><i class="fa fa-check text-success"></i></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <a class="bottom_btn" href="/">&copy; Netfull </a>
+</footer>
+</div>
+</body>
+<script>
+  function showPlanWarning(planName) {
+      const modal = new bootstrap.Modal(document.getElementById('warningModal'));
+      const modalBody = document.querySelector('#warningModal .modal-body');
+      
+      modalBody.innerHTML = `
+          <div class="alert alert-info">
+              You are already on the ${planName} plan.
+          </div>
+      `;
+      
+      modal.show();
+  }
+  </script>
+</html>

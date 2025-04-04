@@ -7,50 +7,132 @@
     <title>Review Business Data</title>
     <link rel="stylesheet" href="{% static 'style.css' %}">
     <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-        th, td {
-            padding: 8px;
-            border: 1px solid #ddd;
-        }
-        th {
-            background-color: #f4f4f4;
-        }
-        input[type="text"],
-        input[type="email"],
-        input[type="date"],
-        input[type="number"] {
-            width: 100%;
-            padding: 5px;
-            box-sizing: border-box;
-        }
-        .submit-btn {
-            margin: 20px 0;
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        .submit-btn:hover {
-            background-color: #45a049;
-        }
+html,
+body {
+	height: 100%;
+}
+
+body {
+	margin: 0;
+	background: linear-gradient(45deg, #49a09d, #5f2c82);
+	font-family: sans-serif;
+	font-weight: 100;
+}
+
+.container {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+
+table {
+	width: 800px;
+	border-collapse: collapse;
+	overflow: hidden;
+	box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+th,
+td {
+	padding: 15px;
+	color: #fff;
+}
+
+th {
+	text-align: left;
+	background-color: rgba(85, 96, 143, 0.8); /* Translucent header */
+}
+
+tbody tr {
+	background-color: rgba(255, 255, 255, 0.3); /* Translucent rows */
+}
+
+tbody tr:hover {
+	background-color: rgba(255, 255, 255, 0.4); /* Slightly darker on hover */
+}
+
+td {
+	position: relative;
+	background-color: rgba(255, 255, 255, 0.2); /* Translucent cells */
+}
+
+td input {
+	background-color: rgba(255, 255, 255, 0.6); /* Translucent input fields */
+	border: 1px solid rgba(255, 255, 255, 0.5); /* Light border to distinguish the inputs */
+	color: #333; /* Ensure text is visible */
+	border-radius: 4px;
+}
+
+td input[type="text"],
+td input[type="email"],
+td input[type="date"],
+td input[type="number"] {
+	width: 100%;
+	padding: 5px;
+	box-sizing: border-box;
+	background-color: rgba(255, 255, 255, 0.3); /* Translucent rows */
+
+}
+
+.button {
+  position: relative;
+  overflow: hidden;
+  height: 3rem;
+  padding: 0 2rem;
+  border-radius: 1.5rem;
+  background: linear-gradient(
+    82.3deg,
+    rgba(150, 93, 233, 1) 10.8%,
+    rgba(99, 88, 238, 1) 94.3%
+  );  background-size: 400%;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.button:hover::before {
+  transform: scaleX(1);
+}
+
+.button-content {
+  position: relative;
+  z-index: 1;
+}
+
+.button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  width: 100%;
+  height: inherit;
+  border-radius: inherit;
+  background: linear-gradient(
+    82.3deg,
+    rgba(150, 93, 233, 1) 10.8%,
+    rgba(99, 88, 238, 1) 94.3%
+  );
+  transition: all 0.475s;
+}
+
+
+
     </style>
 </head>
-<body>
-    <h1>Review Your Business Data</h1>
+<body style="background-image: url('https://images.unsplash.com/photo-1497294815431-9365093b7331?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1950&q=80'); background-size: cover; background-position: center;">
+    <h1 style="color: white; text-align: center; padding: 20px;">Review Your Business Data</h1>
     
     {% if data %}
-        <form method="POST" action="{% url 'process_business_data' %}">
+        <form method="POST" action="{% url 'businesses:process_business_data' %}">
             {% csrf_token %}
             <input type="hidden" name="company_name" value="{{ company_name }}">
             <input type="hidden" name="icon_name" value="{{ icon_name }}">
             <input type="hidden" name="business_id" value="{{ business_id }}">
 
-            <table>
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 8px;">
                 <thead>
                     <tr>
                         {% for column in data.0.keys %}
@@ -78,10 +160,11 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <button type="submit" class="submit-btn">Confirm and Add Business</button>
+            <button type="submit" class="button">  <span class="button-content">Submit </span>
+            </button>
         </form>
     {% else %}
-        <p>No data to review. Please <a href="{% url 'add_business' %}">upload a file</a> first.</p>
+        <p>No data to review. Please <a href="{% url 'businesses:add_business' %}">upload a file</a> first.</p>
     {% endif %}
 
     {% if messages %}

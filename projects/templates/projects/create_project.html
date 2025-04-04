@@ -1,392 +1,173 @@
+{% extends "base.html" %}
 {% load static %}
+{% block page_title %}Create Project{% endblock %}
 
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Project Detail - Admin Dashboard</title>
-    <!-- BOOTSTRAP STYLES -->
-    <link href="{% static 'bootstrap.css' %}" rel="stylesheet" />
-    <!-- FONTAWESOME STYLES -->
-    <link href="{% static 'font-awesome.css' %}" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+{% block content %}
+<style>
 
-    <!-- CUSTOM STYLES -->
-    <link href="{% static 'custom.css' %}" rel="stylesheet" />
-    <!-- GOOGLE FONTS -->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet" type="text/css" />
-    <style>
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
 
-    input, select, button {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      font-size: 16px;
-    }
-
-    input:focus, select:focus {
-      outline: none;
-      border-color: #007bff;
-    }
-}
-
-.task-feedback h5 {
-    font-size: 16px;
-    font-weight: bold;
-    margin-bottom: 10px;
-    color: #333;
-}
-
-.task-feedback form {
-    display: flex;
-    flex-direction: column;
-}
-
-.task-feedback label {
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 5px;
-    color: #555;
-}
-
-.task-feedback textarea {
-    resize: none;
-    height: 80px;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #fff;
-    font-size: 14px;
-    color: #333;
+/* Styling for the search box */
+.search-box {
     margin-bottom: 15px;
-    outline: none;
-}
-
-.task-feedback textarea:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-}
-
-.task-feedback select {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #fff;
     font-size: 14px;
-    color: #555;
-    margin-bottom: 15px;
-    outline: none;
-}
-
-.task-feedback select:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-}
-
-.task-feedback button {
-    padding: 10px 15px;
-    background-color: #28a745;
-    color: #fff;
-    border: none;
+    padding: 10px;
+    width: 100%;
     border-radius: 5px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+    border: 1px solid #ccc;
 }
 
-.task-feedback button:hover {
-    background-color: #218838;
+/* Style the select dropdown */
+#id_members {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
 }
 
-.task-feedback button[type="button"] {
+/* Button styling */
+.btn-danger {
     background-color: #dc3545;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    width: 100%;
+    font-size: 16px;
+    border: none;
 }
 
-.task-feedback button[type="button"]:hover {
+.btn-danger:hover {
     background-color: #c82333;
 }
+
+/* Back link styling */
 .back-link {
-      display: block;
-      margin-top: 15px;
-      text-align: center;
-      color: #007bff;
-      font-size: 14px;
-      text-decoration: none;
-      font-weight: 500;
+    display: block;
+    margin-top: 15px;
+    font-size: 14px;
+    text-decoration: none;
+    color: #007bff;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+/* Styling for the task container */
+.task-manager {
+    padding: 30px;
+    background-color: #f7f7f7;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.task-left {
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.task-right .actions {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.task-right .circle, .task-right .circle-2 {
+    width: 80px;
+    height: 80px;
+    background-color: #f0f0f0;
+    border-radius: 50%;
+    margin: 10px auto;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.circle-2 {
+    background-color: #f9f9f9;
+}
+
+/* For the responsive layout */
+@media (max-width: 768px) {
+    .task-manager {
+        padding: 15px;
     }
 
-    .back-link:hover {
-      text-decoration: underline;
+    .task-left {
+        padding: 15px;
     }
 
-    </style>
-</head>
-<body>
-    <div id="wrapper">
-        <!-- Navigation Bar -->
-        <nav class="navbar navbar-default navbar-cls-top" role="navigation" style="margin-bottom: 0">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".sidebar-collapse">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                {% if business_name is not None %}
-                    <a class="navbar-brand" href="{% url 'dashboard' %}">{{ business_name }}</a>
-                {% else %}
-                    <a class="navbar-brand" href="{% url 'dashboard' %}">Task Manager</a>
-                {% endif %}            </div>
-            <div style="color: white; padding: 15px 50px 5px 50px; float: right; font-size: 16px;">
-              {% if user.is_authenticated %}<a href="/logout" class="btn btn-danger square-btn-adjust">Logout</a>
-              {% else %}
-              <a href="/login" class="btn btn-danger square-btn-adjust">Login</a>
-              <a href="/register" class="btn btn-danger square-btn-adjust">Register</a>
-              {% endif %}
+    .btn-danger {
+        width: auto;
+    }
+
+    .back-link {
+        font-size: 12px;
+    }
+}
+
+</style>
+<div id="page-wrapper">
+    <div id="page-inner">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2 class="page-title">Create a New Project</h2>
+                    <h5 class="welcome-message">Welcome {{ user.username }}, Love to see you back.</h5>
+                </div>
             </div>
-        </nav>
-        
-        <!-- Sidebar Navigation -->
-        <nav class="navbar-default navbar-side" role="navigation">
-            <div class="sidebar-collapse">
-                <ul class="nav" id="main-menu">
-                    <li class="text-center">
-                        <img src="{% static 'img/netfull.png' %}" class="user-image img-responsive" />
-                    </li>
-                    <li>
-                      <a class="active-menu" href="{% url 'dashboard' %}"><i class="fa fa-dashboard fa-3x"></i> Dashboard</a>
-                  </li>
-                  
-                  <li>
-                      <a href="{% url 'user_tasks_view' %}"><i class="fa fa-tasks fa-3x"></i> Tasks</a>
-                  </li>
-                  <li>
-                      <a href="{% url 'create_task' %}"><i class="fa fa-plus fa-3x"></i> Create Task</a>
-                  </li>
-                  <li>
-                      <a href="{% url 'create_project' %}"><i class="fa fa-plus-circle fa-3x"></i> Create Project</a>
-                  </li>
-                  <li>
-                      <a href="{% url 'user_projects_view' %}"><i class="fa fa-briefcase fa-3x"></i> Projects</a>
-                  </li>
-                  
-                           
-                </ul>
-            </div>
-        </nav>
-
-        <!-- Page Content -->
-        <div id="page-wrapper">
-            <div id="page-inner">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <h2 class="page-title">Create a New Project</h2>
-                            <h5 class="welcome-message">Welcome {{ user.username }}, Love to see you back.</h5>
-                        </div>
-                    </div>
-                    <hr />
-
-                    <!-- Task Manager Section -->
-                    <div class="task-manager row">
-                        <div class="col-md-6">
-                            <div class="task-left">
-                              <form method="post">
-                                {% csrf_token %}
-                                {{ form.as_p }}
-                                <button class="btn btn-danger square-btn-adjust" type="submit">Create Project</button>
-                            </form>
-                                
-                                <a href="{% url 'dashboard' %}" class="back-link">Back to Dashboard</a>
-                        </div>
-
-                        <!-- Sidebar for Additional Content -->
-                        <div class="col-md-6">
-                            <div class="task-right">
-                                <div class="actions">
-                                    <div class="circle"></div>
-                                    <div class="circle-2"></div>
-                                </div>
-                                <!-- Add more content for the right side here -->
+            <hr />
+            <div class="task-manager row">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="{{ form.name.id_for_label }}">Project Name:</label>
+                                {{ form.name }}
                             </div>
+                            <div class="form-group">
+                                <label for="{{ form.start_date.id_for_label }}">Start Date:</label>
+                                <input type="date" name="start_date" id="{{ form.start_date.id_for_label }}" value="{{ form.start_date.value|default:'' }}" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ form.end_date.id_for_label }}">End Date:</label>
+                                <input type="date" name="end_date" id="{{ form.end_date.id_for_label }}" value="{{ form.end_date.value|default:'' }}" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                {% if request.user.business %}
+                                    <input type="text" id="search-members" class="form-control" placeholder="Search Members" oninput="filterMembers()">
+                                {% endif %}
+                                {{ form.members }}
+                            </div>
+                            <button class="btn btn-danger square-btn-adjust" type="submit">Create Project</button>
+                        </form>
+                        <a href="{% url 'welcome:dashboard' %}" class="back-link">Back to Dashboard</a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="task-right">
+                        <div class="actions">
+                            <div class="circle"></div>
+                            <div class="circle-2"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-<!-- footer -->
-<style>
-  /* Footer styling */
-  footer {
-    background-color: #222; /* Dark background color */
-    color: #ecf0f1; /* Light text color for contrast */
-    padding: 40px 0; /* Increased padding for a taller footer */
-    font-family: Arial, sans-serif;
-  }
+</div>
 
-  footer .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 15px;
-  }
+<script>
+    function filterMembers() {
+        const searchTerm = document.getElementById("search-members").value.toLowerCase();
+        const memberOptions = document.querySelectorAll("#id_members option");
 
-  footer .social-icons {
-    list-style: none;
-    padding: 0;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  footer .social-icons li {
-    display: inline-block;
-    margin-right: 15px;
-  }
-
-  footer .social-icons a {
-    color: #ecf0f1; /* Light color for text */
-    text-decoration: none;
-    font-size: 18px;
-    transition: color 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-  }
-
-  footer .social-icons a i {
-    margin-right: 8px; /* Space between icon and text */
-    font-size: 20px; /* Icon size */
-  }
-
-  footer .social-icons a:hover {
-    color: #3498db; /* Accent color (blue) on hover */
-  }
-
-  footer .copyright-text {
-    text-align: center;
-    font-size: 14px;
-    margin-top: 10px;
-  }
-
-  footer .copyright-text p {
-    margin: 0;
-    color: #ecf0f1;
-  }
-</style>
-
-
-  
-<footer>
-  <footer>
-      <div class="container">
-        <div class="row">
-          <div class="col-lg-12">
-            <ul class="social-icons">
-              <li><a href="https://www.facebook.com/profile.php?id=61561751296406"><i class="fab fa-facebook"></i> Facebook</a></li>
-              <li><a href="https://www.instagram.com/netfull1/"><i class="fab fa-instagram"></i> Instagram</a></li>
-            </ul>
-          </div>
-          <div class="col-lg-12">
-            <div class="copyright-text">
-              <p>Made By Net Full</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </footer>
-<!-- footer ends -->
-
-    <!-- JavaScript Files -->
-    <script src="{% static 'js/jquery-1.10.2.js' %}"></script>
-    <script src="{% static 'js/bootstrap.min.js' %}"></script>
-    
-    <script src="{% static 'js/jquery.metisMenu.js' %}"></script>
-    <script src="{% static 'js/custom.js' %}"></script>
-    <script>
-        function handleTaskToggle(checkbox) {
-          const taskId = checkbox.dataset.taskId;
-          const isDone = checkbox.checked;
-      
-          // Update task status
-          fetch(`/update_task_status/${taskId}/`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": getCookie("csrftoken"),
-            },
-            body: JSON.stringify({ is_done: isDone }),
-          })
-            .then((response) => {
-              if (response.ok) {
-                return response.json();
-              } else {
-                throw new Error("Failed to update task status.");
-              }
-            })
-            .then((data) => {
-              console.log("Task status updated:", data);
-              // Show or hide the file upload section
-              const fileUploadSection = document.getElementById(`file-upload-${taskId}`);
-              if (isDone) {
-                fileUploadSection.style.display = "block"; // Show file upload
-              } else {
-                fileUploadSection.style.display = "none"; // Hide file upload
-              }
-            })
-            .catch((error) => {
-              console.error("Error updating task status:", error);
-              checkbox.checked = !isDone; // Revert checkbox on error
-            });
-        }
-      
-        function submitUpload(taskId) {
-          const form = document.getElementById(`upload-form-${taskId}`);
-          const formData = new FormData(form);
-      
-          fetch(`/upload_task_file/${taskId}/`, {
-            method: "POST",
-            body: formData,
-            headers: {
-              "X-CSRFToken": getCookie("csrftoken"),
-            },
-          })
-            .then((response) => {
-              if (response.ok) {
-                return response.json();
-              } else {
-                throw new Error("Failed to upload file.");
-              }
-            })
-            .then((data) => {
-              console.log("File uploaded successfully:", data);
-              alert("File uploaded successfully!");
-            })
-            .catch((error) => {
-              console.error("Error uploading file:", error);
-            });
-        }
-      
-        // Helper function to retrieve CSRF token from cookies
-        function getCookie(name) {
-          let cookieValue = null;
-          if (document.cookie && document.cookie !== "") {
-            const cookies = document.cookie.split(";");
-            for (let i = 0; i < cookies.length; i++) {
-              const cookie = cookies[i].trim();
-              if (cookie.startsWith(name + "=")) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-              }
+        memberOptions.forEach(option => {
+            const name = option.textContent.toLowerCase();
+            if (name.includes(searchTerm)) {
+                option.style.display = "block";  // Show matching options
+            } else {
+                option.style.display = "none";   // Hide non-matching options
             }
-          }
-          return cookieValue;
-        }
-      </script>
-</body>
-</html>
+        });
+    }
+</script>
+
+{% endblock %}

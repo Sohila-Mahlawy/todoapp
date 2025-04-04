@@ -14,25 +14,44 @@ from django.utils import timezone
 import zipfile
 from django.http import HttpResponse
 import os
+from businesses.models import Business
+from welcome.utils import pro_required
 
+@pro_required
 @login_required
 def create_project(request):
     if request.method == 'POST':
-        form = ProjectForm(request.POST)
+        form = ProjectForm(request.POST, user=request.user)
         if form.is_valid():
             project = form.save(commit=False)
-            project.created_by = request.user  # Set the creator as the logged-in user (team leader)
+            project.created_by = request.user
+            
+            # For pro users, only save the name and redirect
+            if request.user.subscription_type == 'pro':
+                project.save()
+                return redirect('projects:invite_team_members', project_id=project.id)
+            
+            # For regular users, continue with the existing logic
+            if request.user.businesses.exists():
+                project.business = request.user.businesses.first()
 
-            # Set the start_date if it is not already provided in the form
             if not project.start_date:
-                project.start_date = timezone.now()  # Set the current date and time as the start date
+                project.start_date = timezone.now()
+
+            if not project.end_date:
+                project.end_date = timezone.now() + timezone.timedelta(days=30)
 
             project.save()
-            return redirect('projects/project_detail', project_id=project.id)  # Redirect to the project detail page
+            form.save_m2m()
+            return redirect('projects:project_detail', project_id=project.id)
+        else:
+            print("Form Errors:", form.errors)
     else:
-        form = ProjectForm()
+        form = ProjectForm(user=request.user)
 
     return render(request, 'projects/create_project.html', {'form': form})
+
+
 
 @login_required
 def invite_team_members(request, project_id):
@@ -44,55 +63,100 @@ def invite_team_members(request, project_id):
 
     if request.method == 'POST':
         email = request.POST.get("email")
-        role = request.POST.get("role")  # Fetch the role from the POST data
+        role = request.POST.get("role")
 
         if email and role:
             try:
-                # Check if the user already exists
-                user, created = CustomUser.objects.get_or_create(email=email, defaults={"username": email.split("@")[0]})
+                # Validate email format
+                if not is_valid_email(email):
+                    return render(request, 'projects/add_team_members.html', {
+                        'project': project,
+                        'error_message': "Invalid email format"
+                    })
 
-                # Update the role for the user
-                user.role = role
-                user.save()
+                # Check if user already exists
+                user, created = CustomUser.objects.get_or_create(
+                    email=email,
+                    defaults={"username": email.split("@")[0]}
+                )
 
-                # Create an invitation token
-                token = uuid.uuid4()
+                # Check for existing invitations using filter()
+                existing_invitations = Invitation.objects.filter(
+                    email=email,
+                    project=project
+                )
+
+                if existing_invitations.exists():
+                    return render(request, 'projects/add_team_members.html', {
+                        'project': project,
+                        'error_message': "This email has already been invited to the project."
+                    })
+
+                # Create new invitation
+                token = str(uuid.uuid4())
                 Invitation.objects.create(
                     email=email,
                     project=project,
                     team_leader=request.user,
                     token=token,
+                    role=role
                 )
 
                 # Send invitation email
-                send_invitation_email(request.user, email, token, request)
+                try:
+                    send_mail(
+                        subject="You're Invited to Join a Project!",
+                        message=f"Hi,\n\nYou've been invited by {request.user.username} to join their project.\n\nClick the link below to accept the invitation:\n{request.build_absolute_uri(reverse('projects:accept_invitation', kwargs={'token': token}))}\n\nThanks!",
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[email],
+                    )
+                    return render(request, 'projects/invitation_sent.html', {
+                        'email': email,
+                        'project': project
+                    })
+                except Exception as e:
+                    # Delete the invitation if email sending fails
+                    Invitation.objects.filter(token=token).delete()
+                    return render(request, 'projects/add_team_members.html', {
+                        'project': project,
+                        'error_message': f"Failed to send invitation: {str(e)}"
+                    })
 
-                return render(request, 'projects/invitation_sent.html', {'email': email, 'project': project})
-
-            except IntegrityError:
-                # Handle the case where the email already has an invitation
-                error_message = "This email has already been invited to the project."
-                return render(request, 'add_team_members.html', {'project': project, 'error_message': error_message})
+            except IntegrityError as e:
+                return render(request, 'projects/add_team_members.html', {
+                    'project': project,
+                    'error_message': f"An error occurred: {str(e)}"
+                })
 
     return render(request, 'projects/add_team_members.html', {'project': project})
 
-
-
-def send_invitation_email(team_leader, email, token, request):
+def is_valid_email(email):
+    """Helper function to validate email format without recursion"""
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    try:
+        validate_email(email)
+        return True
+    except ValidationError:
+        return False
+    
+@pro_required
+def send_invitation(team_leader, email, token, request):
     # Use reverse to generate the URL for accepting the invitation
-    invitation_link = request.build_absolute_uri(reverse('accept_invitation', kwargs={'token': token}))
+    invitation_link = request.build_absolute_uri(reverse('projects:accept_invitation', kwargs={'token': token}))
     send_mail(
         subject="You're Invited to Join a Project!",
-        message=f"Hi,\n\nYou've been invited by {team_leader.username} to join the project '{team_leader.username}'.\n\nClick the link below to accept the invitation:\n{invitation_link}\n\nThanks!",
+        message=f"Hi,\n\nYou've been invited by {team_leader.username} to join their project.\n\nClick the link below to accept the invitation:\n{invitation_link}\n\nThanks!",
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[email],
     )
 
-# Utility function to generate a unique token for invitations
+@pro_required
 def generate_unique_token():
     import uuid
     return str(uuid.uuid4())
 
+@pro_required
 @login_required
 def send_invitation(request):
     if request.method == 'POST':
@@ -146,7 +210,6 @@ def accept_invitation(request, token):
 
     return render(request, 'projects/invitation_accepted.html', {'project': project})
 
-
 @login_required
 def project_detail(request, project_id):
     # Fetch the project or return a 404 if it doesn't exist
@@ -156,8 +219,8 @@ def project_detail(request, project_id):
     if request.user != project.created_by and request.user not in project.members.all():
         return HttpResponseForbidden("You do not have permission to view this project.")
 
-    # Fetch tasks related to this project
-    tasks = project.tasks.all()
+    # Fetch tasks related to this project and prefetch feedback
+    tasks = project.tasks.all().prefetch_related('feedback')
 
     # Debugging output to confirm task query results
     print(f"Tasks for project {project_id}: {tasks}")
@@ -169,8 +232,7 @@ def project_detail(request, project_id):
         'members': project.members.all()
     })
 
-
-@login_required
+@pro_required
 def user_projects_view(request):
     """
     Fetch projects related to the authenticated user and render the 'tab-panel.html' template.
@@ -185,13 +247,26 @@ def user_projects_view(request):
     user_projects = list(created_projects) + list(member_projects)
     unique_projects = {project.id: project for project in user_projects}.values()  # Deduplicate by project ID
 
+    # Calculate completion percentages for each project
+    project_data = []
+    for project in unique_projects:
+        total_tasks = project.tasks.count()
+        completed_tasks = project.tasks.filter(is_done=True).count()
+        completion_percentage = int((completed_tasks / total_tasks) * 100) if total_tasks > 0 else 0
+        project_data.append({
+            'project': project,
+            'completion_percentage': completion_percentage
+        })
+
     # Context data for the template
     context = {
-        'projects': unique_projects
+        'project_data': project_data,
+        'members_count': sum(project.members.count() for project in unique_projects)
     }
 
     return render(request, 'projects/projects.html', context)
 
+@pro_required
 def view_project_tasks(request, project_id):
     project = get_object_or_404(Project, id=project_id)
 
@@ -205,6 +280,7 @@ def view_project_tasks(request, project_id):
         'tasks': tasks,
     })
 
+@pro_required
 def export_project_files(request, project_id):
     # Fetch the project and associated tasks
     project = get_object_or_404(Project, id=project_id)

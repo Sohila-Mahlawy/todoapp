@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Confirmation</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #card-element {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        #error-message {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Complete Your Payment</h1>
+    <form id="payment-form">
+        <div id="card-element">
+            <!-- A Stripe Element will be inserted here -->
+        </div>
+        <button id="submit">Pay</button>
+        <div id="error-message"></div>
+    </form>
+
+    <script>
+        // Initialize Stripe.js
+        const stripe = Stripe('{{ publishable_key }}');
+        const elements = stripe.elements();
+        const cardElement = elements.create('card');
+        cardElement.mount('#card-element');
+    
+        // Handle form submission
+        const form = document.getElementById('payment-form');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+    
+            const { error, paymentIntent } = await stripe.confirmCardPayment(
+                '{{ client_secret }}',  // Use the client secret passed from the backend
+                {
+                    payment_method: {
+                        card: cardElement,
+                    },
+                }
+            );
+    
+            if (error) {
+                document.getElementById('error-message').textContent = error.message;
+            } else {
+                // Payment succeeded
+                window.location.href = '/payment-success/';
+            }
+        });
+    </script>
+</body>
+</html>

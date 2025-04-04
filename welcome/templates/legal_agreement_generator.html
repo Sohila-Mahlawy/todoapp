@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Generate Legal Agreement
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="container">
+        <div class="section">
+            <h2>Financial Forecast Generator</h2>
+            <h5>Welcome {{ user.username }}</h5>
+        </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <input type="text" 
+                   name="company_name" 
+                   required 
+                   readonly 
+                   value="{% if user_business %}{{ user_business.name }}{% endif %}">
+        </div>
+
+        <div class="form-group">
+            <select name="agreement_type" required>
+                <option value="">Select Agreement Type</option>
+                <option value="Work">Work Agreement</option>
+                <option value="Service">Service Contract</option>
+                <option value="Partnership">Partnership Agreement</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <textarea name="parties_involved" 
+                      placeholder="Parties Involved (separate with commas)" 
+                      required></textarea>
+        </div>
+
+        <div class="form-group">
+            <button type="submit" class="generate_button">Generate</button>
+        </div>
+    </form>
+
+    {% if result %}
+        <h2>Legal Agreement for {{ company_name }}</h2>
+        <div id="typewriter">
+            <div id="response-text"></div>
+        </div>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const response = `{{ result|safe }}`;
+                const responseElement = document.getElementById('response-text');
+                let index = 0;
+                responseElement.innerHTML = '';
+                
+                function typeWriter() {
+                    if (index < response.length) {
+                        responseElement.innerHTML += response.charAt(index);
+                        index++;
+                        setTimeout(typeWriter, 20);
+                    }
+                }
+                setTimeout(typeWriter, 500);
+            });
+        </script>
+    {% endif %}
+</div>
+
+<style>
+    .container {
+        max-width: clamp(300px, 90%, 900px);
+        margin: clamp(20px, 5vw, 40px) auto;
+        padding: clamp(15px, 4vw, 20px);
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+    .section {
+        margin-bottom: clamp(20px, 5vw, 40px);
+    }
+    .form-group {
+        margin-bottom: clamp(10px, 3vw, 20px);
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: clamp(8px, 2vw, 10px);
+        font-size: clamp(14px, 2vw, 16px);
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin-top: clamp(8px, 2vw, 10px);
+    }
+    .generate_button {
+        display: block;
+        width: 100%;
+        padding: clamp(10px, 3vw, 12px);
+        font-size: clamp(14px, 2vw, 16px);
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background-color: #e91e63;  /* Black color */
+        color: white;
+        transition: background 0.3s;
+    }
+    .generate_button:hover {
+        background-color: #e91e63;  /* Darker black on hover */
+    }
+</style>
+
+{% endblock %}

@@ -3,6 +3,31 @@
   outline: none;
 }
 
+body.light-mode .sidebar {
+  background-color: white !important;
+  color: #333 !important;
+  border-right: 1px solid #e0e0e0;
+}
+
+body.light-mode .sidebar .nav-link {
+  color: #333 !important;
+}
+
+body.light-mode .sidebar .nav-link:hover {
+  background-color: #f5f5f5;
+}
+
+body.light-mode .sidebar .nav-link.active {
+  background-color: #e9ecef;
+  color: #000 !important;
+}
+
+/* Fix sidebar in dark mode for "Take a Tour" */
+body.dark-mode .sidebar .nav-link.tour-highlight {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff !important;
+}
+
 :root {
   --bg-color: #f5f8ff;
   --main-color: #353536;

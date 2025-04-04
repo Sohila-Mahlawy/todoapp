@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block page_title %}
+Generate Product Description
+{% endblock %}
+
+{% block content %}
+<div class="container" style="background-color: white; padding: 20px; border-radius: 10px;">
+    <div id="page-wrapper">
+        <div id="page-inner">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>Generate Product Description</h2>
+                    {% if messages %}
+                        <div class="alert alert-danger">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <style>
+                .product-description-section {
+                    margin: 2rem 0;
+                    padding: 1.5rem;
+                    border-left: 4px solid #ff9800;
+                    background: #f8f9fa;
+                }
+                .typewriter-product-description {
+                    font-family: 'Courier New', monospace;
+                    white-space: pre-wrap;
+                    color: #2c3e50;
+                }
+                .generate_button {
+                    display: block;
+                    width: 100%;
+                    padding: clamp(10px, 3vw, 12px);
+                    font-size: clamp(14px, 2vw, 16px);
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    background-color: #e91e63;  /* Pink color */
+                    color: white;
+                    transition: background 0.3s;
+                }
+
+                .generate_button:hover {
+                    background-color: #e91e63;  /* Pink color on hover */
+                }
+            </style>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="product_name">Product Name:</label>
+                    <input type="text" class="form-control" id="product_name" name="product_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="product_category">Product Category:</label>
+                    <input type="text" class="form-control" id="product_category" name="product_category" required>
+                </div>
+                <div class="form-group">
+                    <label for="product_features">Product Features:</label>
+                    <textarea class="form-control" id="product_features" name="product_features" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="generate_button">Generate</button>
+            </form>
+
+            {% if product_description %}
+                <div class="product-description-section">
+                    <h3>Generated Product Description:</h3>
+                    <div id="product-description-content" class="typewriter-product-description"></div>
+                </div>
+                
+                {{ product_description|json_script:"product-description-data" }}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const productDescriptionContent = JSON.parse(document.getElementById('product-description-data').textContent);
+                        const productDescriptionElement = document.getElementById('product-description-content');
+                        let index = 0;
+                        let htmlBuffer = '';
+                        
+                        function typeProductDescription() {
+                            if (index < productDescriptionContent.length) {
+                                htmlBuffer += productDescriptionContent.charAt(index);
+                                productDescriptionElement.innerHTML = htmlBuffer;
+                                index++;
+                                setTimeout(typeProductDescription, 20);
+                            }
+                        }
+                        
+                        productDescriptionElement.innerHTML = '';
+                        setTimeout(typeProductDescription, 500);
+                    });
+                </script>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

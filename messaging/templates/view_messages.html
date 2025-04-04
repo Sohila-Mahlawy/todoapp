@@ -1,25 +1,150 @@
 {% extends "messages_base.html" %}
-
-{% block title %}View Messages{% endblock %}
-
+{% block page_title %}View Messages{% endblock %}
 {% block content %}
-    <h2>Received Messages</h2>
-    <ul>
+<div class="container">
+    <h2 class="mt-4">Inbox</h2>
+    <div class="message-list">
         {% for message in received_messages %}
-            <li>
-                <strong>{{ message.subject }}</strong> from {{ message.sender.email }} at {{ message.created_at }}<br>
-                {{ message.body }}
-            </li>
+            <div class="message-item {% if not message.is_read %}unread{% endif %}" data-message-id="{{ message.id }}">
+                <div class="message-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-envelope {% if not message.is_read %}text-primary{% endif %} me-2"></i>
+                        <strong>{{ message.subject }}</strong>
+                    </div>
+                    <div class="text-muted">
+                        <span class="sender-email">From: {{ message.sender.email }}</span><br>
+                        <span class="timestamp">{{ message.created_at|date:"F j, Y, P" }}</span>
+                    </div>
+                </div>
+                <div class="message-body mt-2">
+                    {{ message.body|truncatewords:20|linebreaks }}
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-center text-muted">No messages in your inbox.</p>
         {% endfor %}
-    </ul>
+    </div>
 
-    <h2 id="sent">Sent Messages</h2>
-    <ul>
+    <h2 class="mt-5">Sent Messages</h2>
+    <div class="message-list">
         {% for message in sent_messages %}
-            <li>
-                <strong>{{ message.subject }}</strong> to {{ message.recipients.all|join:", " }} at {{ message.created_at }}<br>
-                {{ message.body }}
-            </li>
+            <div class="message-item">
+                <div class="message-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-paper-plane text-success me-2"></i>
+                        <strong>{{ message.subject }}</strong>
+                    </div>
+                    <div class="text-muted">
+                        <span class="recipients">To: {{ message.recipients.all|join:", " }}</span><br>
+                        <span class="timestamp">{{ message.created_at|date:"F j, Y, P" }}</span>
+                    </div>
+                </div>
+                <div class="message-body mt-2">
+                    {{ message.body|truncatewords:20|linebreaks }}
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-center text-muted">You haven't sent any messages yet.</p>
         {% endfor %}
-    </ul>
+    </div>
+</div>
+
+<style>
+    /* General Styles */
+    body {
+        font-family: var(--bs-font-sans-serif);
+        background-color: var(--bs-body-bg);
+        color: var(--bs-body-color);
+    }
+
+    .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: var(--bs-light-bg-subtle);
+        border-radius: var(--bs-border-radius-lg);
+        box-shadow: var(--bs-box-shadow);
+    }
+
+    h2 {
+        color: var(--bs-primary);
+        border-bottom: 1px solid var(--bs-gray-300);
+        padding-bottom: 10px;
+        margin-top: 20px;
+    }
+
+    /* Message List Styles */
+    .message-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .message-item {
+        padding: 15px;
+        border-bottom: 1px solid var(--bs-gray-200);
+        transition: background-color 0.3s ease;
+        cursor: pointer;
+    }
+
+    .message-item.unread {
+        background-color: var(--bs-primary-bg-subtle);
+        font-weight: bold;
+    }
+
+    .message-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Message Header */
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .message-header strong {
+        font-size: 16px;
+        color: var(--bs-dark);
+    }
+
+    .sender-email, .recipients, .timestamp {
+        font-size: 14px;
+        color: var(--bs-gray-600);
+    }
+
+    /* Message Body */
+    .message-body {
+        font-size: 14px;
+        color: var(--bs-gray-700);
+        white-space: pre-wrap; /* Preserve line breaks */
+    }
+
+    /* Empty State */
+    p.text-center {
+        text-align: center;
+        color: var(--bs-gray-500);
+        margin: 20px 0;
+    }
+
+    /* Icons */
+    .fas.fa-envelope {
+        font-size: 1.25rem;
+    }
+
+    .fas.fa-paper-plane {
+        font-size: 1.25rem;
+    }
+</style>
+
+<script>
+    // Automatically mark unread messages as read when clicked
+    document.querySelectorAll('.message-item.unread').forEach(item => {
+        item.addEventListener('click', () => {
+            item.classList.remove('unread');
+            const messageId = item.getAttribute('data-message-id');
+            console.log(`Marking message ${messageId} as read.`);
+            // You can add an AJAX request here to update the server
+        });
+    });
+</script>
 {% endblock %}

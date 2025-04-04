@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="page-wrapper">
+    <div id="page-inner">
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Generate Content Calendar</h2>
+                {% if messages %}
+                    <div class="alert alert-danger">
+                        {% for message in messages %}
+                            <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <style>
+            .content-calendar-section {
+                margin: 2rem 0;
+                padding: 1.5rem;
+                border-left: 4px solid #ff9800;
+                background: #f8f9fa;
+            }
+            .typewriter-content-calendar {
+                font-family: 'Courier New', monospace;
+                white-space: pre-wrap;
+                color: #2c3e50;
+            }
+        </style>
+
+        <form method="post" class="form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="content_type">Content Type:</label>
+                <input type="text" class="form-control" id="content_type" name="content_type" required>
+            </div>
+            <div class="form-group">
+                <label for="start_date">Start Date:</label>
+                <input type="date" class="form-control" id="start_date" name="start_date" required>
+            </div>
+            <div class="form-group">
+                <label for="end_date">End Date:</label>
+                <input type="date" class="form-control" id="end_date" name="end_date" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Generate</button>
+        </form>
+
+        {% if content_calendar %}
+            <div class="content-calendar-section">
+                <h3>Generated Content Calendar</h3>
+                <div id="content-calendar-content" class="typewriter-content-calendar"></div>
+            </div>
+            
+            {{ content_calendar|json_script:"content-calendar-data" }}
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const contentCalendarContent = JSON.parse(document.getElementById('content-calendar-data').textContent);
+                    const contentCalendarElement = document.getElementById('content-calendar-content');
+                    let index = 0;
+                    let htmlBuffer = '';
+                    
+                    function typeContentCalendar() {
+                        if (index < contentCalendarContent.length) {
+                            htmlBuffer += contentCalendarContent.charAt(index);
+                            contentCalendarElement.innerHTML = htmlBuffer;
+                            index++;
+                            setTimeout(typeContentCalendar, 20);
+                        }
+                    }
+                    
+                    contentCalendarElement.innerHTML = '';
+                    setTimeout(typeContentCalendar, 500);
+                });
+            </script>
+        {% endif %}
+
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
