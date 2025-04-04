@@ -137,7 +137,6 @@ STATIC_URL = '/static/'
 
 # Add both the base static directory and the welcome/static directory
 STATICFILES_DIRS = [
-    BASE_DIR / "static",  # Ensure this path is correct
     BASE_DIR / "welcome" / "static",  # Explicitly add welcome/static directory
 ]
 
