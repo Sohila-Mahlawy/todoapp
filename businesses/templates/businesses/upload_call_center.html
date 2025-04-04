@@ -1,70 +1,98 @@
 {% extends 'base.html' %}
-{% block content %}
 {% block page_title %}Upload Call Center{% endblock %}
 
-        <div id="page-wrapper" >
-            <div id="page-inner">
-                <div class="row">
-                    <div class="col-md-12">
-                     <h2>Upload Call Center ZIP File
-                    </h2>   
-                        <h5>Welcome {{user.username}} , Love to see you back. </h5>
-                    </div>
-                </div>              
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    {{ form.as_p }} <!-- Keep the form as it is -->
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fa fa-upload"></i> Upload
-                    </button>
-                </form>
-                <style>
-                    /* Style the form container */
-                    form {
-                        max-width: 500px;
-                        margin: 20px auto;
-                        padding: 20px;
-                        border: 1px solid #ddd;
-                        border-radius: 5px;
-                        background-color: #f9f9f9;
-                    }
-                
-                    /* Style the form labels */
-                    form label {
-                        font-weight: bold;
-                        margin-bottom: 5px;
-                        display: block;
-                    }
-                
-                    /* Style the form inputs */
-                    form input[type="file"] {
-                        display: block;
-                        margin-bottom: 15px;
-                        padding: 10px;
-                        border: 1px solid #ccc;
-                        border-radius: 4px;
-                        width: 100%;
-                    }
-                
-                    /* Style the submit button */
-                    form button {
-                        background-color: #4CAF50; /* Green */
-                        color: white;
-                        padding: 10px 20px;
-                        border: none;
-                        border-radius: 4px;
-                        cursor: pointer;
-                        font-size: 16px;
-                    }
-                
-                    form button:hover {
-                        background-color: #45a049; /* Darker green on hover */
-                    }
-                
-                    /* Add spacing between form elements */
-                    form p {
-                        margin-bottom: 15px;
-                    }
-                </style>
+{% block content %}
 
-                {% endblock %}
+<div id="page-wrapper">
+    <div id="page-inner">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>Upload Call Center ZIP File</h2>
+                </div>
+            </div>
+            <hr />
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.as_p }} <!-- Keep the form as it is -->
+                <button type="submit">
+                    <i class="fa fa-upload"></i> Upload
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Container styling */
+    .container {
+        max-width: clamp(300px, 90%, 900px);
+        margin: clamp(20px, 5vw, 40px) auto;
+        padding: clamp(15px, 4vw, 20px);
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    /* Form container styling */
+    form {
+        max-width: 500px;
+        margin: 20px auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+
+    /* Style the form labels */
+    form label {
+        font-weight: bold;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    /* File input styling */
+    form input[type="file"] {
+        display: block;
+        margin-bottom: 15px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 100%;
+    }
+
+    /* Red button styling */
+    form button {
+        background-color: #e91e63;  /* Red color */
+        color: white;
+        padding: 12px 24px;
+        border-radius: 5px;
+        width: 100%; /* Full width */
+        font-size: clamp(14px, 2vw, 16px);
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    form button:hover {
+        background-color: #e91e63; /* Darker red on hover */
+    }
+
+    /* Add spacing between form elements */
+    form p {
+        margin-bottom: 15px;
+    }
+
+    @media (max-width: 768px) {
+        /* Responsive adjustments for smaller screens */
+        .task-manager {
+            padding: 15px;
+        }
+
+        .btn-danger {
+            width: auto; /* Button adjusts to content on smaller screens */
+        }
+    }
+</style>
+
+{% endblock %}

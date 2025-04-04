@@ -30,6 +30,8 @@ from welcome.utils import business_required,has_business_required
 from django.views.decorators.csrf import csrf_exempt
 import jwt
 import time
+import base64
+from django.core.files.base import ContentFile
 
 
 @business_required
@@ -200,20 +202,15 @@ def finance_records_list(request):
     return render(request, 'businesses/finance_records_list.html', {'finance_records': finance_records})
 
 
-import base64
-from django.core.files.base import ContentFile
 
 @login_required
 def submit_complaint(request):
     user = request.user
 
-    # Ensure the user owns a business
-    try:
-        business = user.businesses.first()  # Get the first owned business
-        if not business:
-            raise PermissionDenied("You do not own a business.")
-    except Business.DoesNotExist:
-        raise PermissionDenied("You do not own a business.")
+    # Try to get the user's business, but don't require it
+    business = None
+    if user.is_authenticated:
+        business = user.businesses.first()  # Get the first owned business if it exists
 
     if request.method == "POST":
         text = request.POST.get("text")
@@ -236,9 +233,9 @@ def submit_complaint(request):
             ext = format.split('/')[-1]
             voice_file = ContentFile(base64.b64decode(audio_str), name=f"complaint_{user.id}.{ext}")
 
-        # Save the complaint
+        # Save the complaint, with or without a business
         Complaint.objects.create(
-            business=business,
+            business=business,  # This will be None if user has no business
             user=user,
             text=text,
             voice=voice_file,

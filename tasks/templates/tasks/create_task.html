@@ -1,141 +1,164 @@
 ﻿﻿{% extends "base.html" %}
 {% load static %}
-{% block page_title %}Create Task{% endblock %}
-
+{% block page_title %}
+Create Task{% endblock %}
+{% block head %}
+{{ block.super }}
+<script>
+  // Ensure favicon is loaded properly
+  document.addEventListener('DOMContentLoaded', function() {
+    // Create a new favicon link tag
+    var link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/png';
+    link.href = "{% static 'assets/img/favicon.ico' %}";
+    
+    // Remove any existing favicons
+    var existingFavicons = document.querySelectorAll('link[rel*="icon"]');
+    existingFavicons.forEach(function(favicon) {
+      favicon.parentNode.removeChild(favicon);
+    });
+    
+    // Add the new favicon to the head
+    document.head.appendChild(link);
+  });
+</script>
+{% endblock %}
 {% block content %}
-<div id="page-wrapper">
-    <div id="page-inner">
-        <div class="container-fluid">
+<div class="container">
+    <div id="page-wrapper">
+        <div id="page-inner">
             <div class="row">
                 <div class="col-md-12">
-                    <h2 class="page-title">Create a New Task</h2>
-                    <h5 class="welcome-message">Welcome {{ user.username }}, Love to see you back.</h5>
-                </div>
-            </div>
-            <hr />
-            <div class="task-manager row">
-                <div class="col-md-6">
-                    <div class="task-left">
-                        <form method="post" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            <label for="task_name">Task Name:</label>
-                            <input type="text" id="task_name" name="task_name" required>
-                            
-                            {% if request.user.subscription_type|lower in 'pro,business' %}
-                                <label for="project_id">Project (Optional):</label>
-                                <select id="project_id" name="project_id" onchange="showAssignTo()">
-                                    <option value="">--Select a Project--</option>
-                                    {% for project in projects %}
-                                        <option value="{{ project.id }}">{{ project.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            {% endif %}
-
-                            <!-- Assign To dropdown, hidden initially -->
-                            <div id="assign_to_container" style="display:none;">
-                                <label for="assigned_to">Assign To:</label>
-                                <input type="text" id="search-members" class="form-control" placeholder="Search Members" oninput="filterMembers()">
-                                <select id="assigned_to" name="assigned_to">
-                                    <option value="">--Select a User--</option>
-                                    {% for member in members %}
-                                        <option value="{{ member.id }}" data-project-id="{{ member.project.id }}">
-                                            {{ member.username }}
-                                        </option>
-                                    {% endfor %}
-                                </select>                             
-                            </div>
-                            <label for="task_name">Due Date:</label>
-                            <input type="datetime-local" name="due_date" id="due_date" required>   
-                            <button class="btn btn-danger square-btn-adjust" type="submit">Create Task</button>
-                        </form>
-                        <a href="{% url 'welcome:dashboard' %}" class="back-link">Back to Dashboard</a>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="task-right">
-                        <div class="actions">
-                            <div class="circle"></div>
-                            <div class="circle-2"></div>
+                    <h2>Create a New Task</h2>
+                    {% if messages %}
+                        <div class="alert alert-danger">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
                         </div>
-                    </div>
+                    {% endif %}
                 </div>
             </div>
+
+            <style>
+                .container {
+                    max-width: clamp(300px, 90%, 900px);
+                    margin: clamp(20px, 5vw, 40px) auto;
+                    padding: clamp(15px, 4vw, 20px);
+                    background-color: #fff;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    border-radius: 8px;
+                }
+
+                .form-group {
+                    margin-bottom: 1rem;
+                }
+
+                .btn-submit {
+                    display: block;
+                    width: 100%;
+                    padding: clamp(10px, 3vw, 12px);
+                    font-size: clamp(14px, 2vw, 16px);
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    background-color: #e91e63;  /* نفس اللون الأحمر */
+                    color: white;
+                    transition: background 0.3s;
+                }
+
+                .btn-submit:hover {
+                    background-color: #c2185b; /* لون أحمر أغمق عند التحويم */
+                }
+
+                .back-link {
+                    display: block;
+                    margin-top: 10px;
+                    text-align: center;
+                    color: #007bff;
+                    text-decoration: none;
+                }
+
+                .back-link:hover {
+                    text-decoration: underline;
+                }
+            </style>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="task_name">Task Name:</label>
+                    <input type="text" id="task_name" name="task_name" class="form-control" required>
+                </div>
+
+                {% if request.user.subscription_type|lower in 'pro,business' %}
+                    <div class="form-group">
+                        <label for="project_id">Project (Optional):</label>
+                        <select id="project_id" name="project_id" class="form-control" onchange="showAssignTo()">
+                            <option value="">--Select a Project--</option>
+                            {% for project in projects %}
+                                <option value="{{ project.id }}">{{ project.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+
+                <div id="assign_to_container" class="form-group" style="display:none;">
+                    <label for="assigned_to">Assign To:</label>
+                    <input type="text" id="search-members" class="form-control" placeholder="Search Members" oninput="filterMembers()">
+                    <select id="assigned_to" name="assigned_to" class="form-control">
+                        <option value="">--Select a User--</option>
+                        {% for member in members %}
+                            <option value="{{ member.id }}" data-project-id="{{ member.project.id }}">
+                                {{ member.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="due_date">Due Date:</label>
+                    <input type="datetime-local" name="due_date" id="due_date" class="form-control" required>
+                </div>
+
+                <button type="submit" class="btn-submit">Create Task</button>
+            </form>
+            <a href="{% url 'welcome:dashboard' %}" class="back-link">Back to Dashboard</a>
         </div>
     </div>
 </div>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
-    // Function to show the Assign To dropdown after selecting a project
-// Function to show the Assign To dropdown after selecting a project
-function showAssignTo() {
-    const projectId = document.getElementById("project_id").value;
-    const assignToContainer = document.getElementById("assign_to_container");
-    const membersDropdown = document.getElementById("assigned_to");
+    function showAssignTo() {
+        const projectId = document.getElementById("project_id").value;
+        const assignToContainer = document.getElementById("assign_to_container");
+        const membersDropdown = document.getElementById("assigned_to");
 
-    // Clear previous selections
-    const memberOptions = membersDropdown.querySelectorAll("option[data-project-id]");
-    memberOptions.forEach(option => {
-        option.style.display = "none"; // Hide all members initially
-    });
+        const memberOptions = membersDropdown.querySelectorAll("option[data-project-id]");
+        memberOptions.forEach(option => option.style.display = "none");
 
-    if (projectId) {
-        assignToContainer.style.display = "block";
-        memberOptions.forEach(option => {
-            if (option.getAttribute("data-project-id") === projectId) {
-                option.style.display = "block"; // Show only relevant members
-            }
-        });
-    } else {
-        assignToContainer.style.display = "none";
+        if (projectId) {
+            assignToContainer.style.display = "block";
+            memberOptions.forEach(option => {
+                if (option.getAttribute("data-project-id") === projectId) {
+                    option.style.display = "block";
+                }
+            });
+        } else {
+            assignToContainer.style.display = "none";
+        }
     }
-}
 
-$(document).ready(function () {
-        $('#project_id').on('change', function () {
-            const projectId = $(this).val();
-            const assignToContainer = $('#assign_to_container');
-            const membersDropdown = $('#assigned_to');
-
-            membersDropdown.empty();  // Clear previous options
-            assignToContainer.hide(); // Hide container initially
-
-            if (projectId) {
-                $.ajax({
-                    url: '{% url "tasks:create_task" %}', // Assuming "create_task" is the URL name
-                    type: 'GET',
-                    data: { project_id: projectId },
-                    success: function (data) {
-                        if (data.length > 0) {
-                            assignToContainer.show();
-                            membersDropdown.append('<option value="">--Select a User--</option>');
-                            data.forEach(function (member) {
-                                membersDropdown.append(`<option value="${member.id}">${member.username}</option>`);
-                            });
-                        }
-                    },
-                    error: function () {
-                        alert('Failed to fetch project members. Please try again.');
-                    }
-                });
-            }
-        });
-    });
-
-
-    // Function to filter members in the Assign To dropdown
     function filterMembers() {
         const searchTerm = document.getElementById("search-members").value.toLowerCase();
         const memberOptions = document.querySelectorAll("#assigned_to option");
 
         memberOptions.forEach(option => {
-            const name = option.textContent.toLowerCase();
-            if (name.includes(searchTerm)) {
-                option.style.display = "block";  // Show matching options
-            } else {
-                option.style.display = "none";   // Hide non-matching options
-            }
+            option.style.display = option.textContent.toLowerCase().includes(searchTerm) ? "block" : "none";
         });
     }
 </script>
+
 {% endblock %}

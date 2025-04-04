@@ -3,35 +3,28 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from .models import UnloggedUserTask,LoggedUserTask, Notification,UISettings , CalendarEvent , ProUserTask,TaskFeedback,CustomUser, SubscriptionOrder, UserProfile
 from projects.models import Project
-from tasks.views import get_client_ip,user_tasks_view
+from tasks.views import get_client_ip
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
-from datetime import timedelta, datetime
+from datetime import timedelta
 from django.conf import settings
-from django.utils import timezone
-from django.http import HttpResponseForbidden
 from django.utils.timezone import now
 from django.contrib import messages
 import requests
-from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth import update_session_auth_hash
-from urllib.parse import quote_plus
 import uuid
 from django.utils import timezone
-from datetime import timedelta
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_date
 from django.db.models.functions import TruncDate
 from django.db.models import Count
-from .utils import business_required, pro_required
+from .utils import pro_required
 import stripe  # Add this line
 from django.http import HttpResponse  # Add this line
 from django.views.decorators.http import require_POST
-
+import json
+from django.db import models
 
 @pro_required
 @login_required
@@ -805,615 +798,6 @@ def user_detail(request, user_id):
     user = get_object_or_404(CustomUser, id=user_id)
     return render(request, 'user_detail.html', {'user': user})
 
-import json
-@business_required
-def help(request):
-    response = None  # Initialize response variable
-    query = None  # Initialize query variable for display in the template
-    
-    if request.method == "POST":
-        query = request.POST.get('query')
-        if not query:
-            return render(request, 'help.html', {'error': 'Query cannot be empty'})
-        
-        # Construct the URL with the query parameter
-        base_url = "https://www.ibrahimfakhry.com/handle_query"
-        params = {'query': query}
-        
-        try:
-            # Make a GET request to the external URL
-            external_response = requests.get(base_url, params=params, timeout=20)
-            external_response.raise_for_status()  # Raise HTTPError for bad responses (4xx and 5xx)
-            
-            # Parse the JSON response and extract the "query_response" key
-            response_json = external_response.json()
-            response = response_json.get('query_response', 'No response available')
-            
-        except requests.exceptions.RequestException as e:
-            # Handle errors (e.g., network issues, invalid responses)
-            response = f"An error occurred while fetching the query response: {e}"
-        except json.JSONDecodeError:
-            # Handle cases where the response is not valid JSON
-            response = "Invalid response format received from the server."
-    
-    return render(request, 'help.html', {'query': query, 'response': response})
-
-# views.py
-@business_required
-def generate_terms(request):
-    if request.method == 'POST':
-        try:
-            # Parse the JSON data from the request body
-            data = json.loads(request.body)
-            company_name = data.get('company_name')
-            company_description = data.get('company_description')
-
-            if not company_name or not company_description:
-                return JsonResponse({"error": "Both company name and description are required."}, status=400)
-
-            # Encode parameters for the API
-            encoded_name = quote_plus(company_name)
-            encoded_description = quote_plus(company_description)
-            api_url = f"https://www.ibrahimfakhry.com/generate_terms_policies?company_name={encoded_name}&company_description={encoded_description}"
-
-            try:
-                response = requests.get(api_url)
-                response.raise_for_status()
-
-                # Check if the response is valid JSON
-                try:
-                    data = response.json()
-                except ValueError:
-                    return JsonResponse({"error": "Invalid JSON response from the API"}, status=500)
-
-                terms_policies = data.get('terms_policies', "No terms generated.")
-                return JsonResponse({"terms_policies": terms_policies})
-            except requests.RequestException as e:
-                return JsonResponse({"error": f"API request failed: {str(e)}"}, status=500)
-
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON in request body"}, status=400)
-
-    return JsonResponse({"error": "Invalid request method"}, status=405)
-
-@business_required
-def generate_agreement(request):
-    from businesses.models import Business
-    context = {}
-    
-    user = request.user
-    user_businesses = Business.objects.filter(user=user)
-    user_business = user_businesses.first() if user_businesses.exists() else None
-    
-    if request.method == 'POST':
-        if not user_business:
-            context['error'] = "No business associated with this account"
-            return render(request, 'legal_agreement_generator.html', context)
-            
-        company_name = user_business.name
-        agreement_type = request.POST.get('agreement_type')
-        parties_involved = request.POST.get('parties_involved')
-        
-        # Encode parameters
-        encoded_name = quote_plus(company_name)
-        encoded_type = quote_plus(agreement_type)
-        encoded_parties = quote_plus(parties_involved)
-        
-        api_url = f"https://www.ibrahimfakhry.com/generate_legal_agreement?company_name={encoded_name}&agreement_type={encoded_type}&parties_involved={encoded_parties}"
-        
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            data = response.json()
-            context['result'] = data.get('legal_agreement', '')
-            context['company_name'] = company_name
-    
-    context['user_business'] = user_business
-    return render(request, 'legal_agreement_generator.html', context)
-
-@business_required
-def generate_forecast(request):
-    from businesses.models import Business
-    context = {}
-    
-    user = request.user
-    user_business = Business.objects.filter(user=user).first()
-    
-    if request.method == 'POST':
-        if not user_business:
-            context['error'] = "No business associated with this account"
-            return render(request, 'financial_forecast.html', context)
-            
-        company_name = user_business.name
-        current_revenue = request.POST.get('current_revenue')
-        growth_rate = request.POST.get('growth_rate')
-        
-        # Create encoded URL
-        encoded_name = quote_plus(company_name)
-        encoded_revenue = quote_plus(current_revenue)
-        encoded_growth = quote_plus(growth_rate)
-        
-        api_url = f"https://www.ibrahimfakhry.com/generate_financial_forecast?company_name={encoded_name}&current_revenue={encoded_revenue}&future_growth_rate={encoded_growth}"
-        
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            data = response.json()
-            context['forecast'] = data.get('financial_forecast', '')
-            context['company_name'] = company_name
-    
-    context['user_business'] = user_business
-    return render(request, 'financial_forecast.html', context)
-
-@business_required
-def generate_schedule(request):
-    from businesses.models import Business
-    context = {}
-    
-    user = request.user
-    user_business = Business.objects.filter(user=user).first()
-    
-    if request.method == 'POST':
-        if not user_business:
-            context['error'] = "No business associated with this account"
-            return render(request, 'event_schedule.html', context)
-            
-        event_name = user_business.name
-        event_date = request.POST.get('event_date')
-        activities = request.POST.get('activities_list')
-        
-        # Format date
-        try:
-            formatted_date = datetime.strptime(event_date, '%Y-%m-%d').strftime('%B %d, %Y')
-        except:
-            context['error'] = "Invalid date format"
-            return render(request, 'event_schedule.html', context)
-        
-        # Create encoded URL
-        encoded_name = quote_plus(event_name)
-        encoded_date = quote_plus(event_date)
-        encoded_activities = quote_plus(activities)
-        
-        api_url = f"https://www.ibrahimfakhry.com/generate_event_schedule?event_name={encoded_name}&event_date={encoded_date}&activities_list={encoded_activities}"
-        
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            data = response.json()
-            context['schedule'] = data.get('event_schedule', '')
-            context['event_name'] = event_name
-            context['formatted_date'] = formatted_date
-    
-    context['user_business'] = user_business
-    return render(request, 'event_schedule.html', context)
-
-@business_required
-def generate_code(request):
-    context = {}
-    
-    if request.method == 'POST':
-        language = request.POST.get('language')
-        task_description = request.POST.get('task_description')
-        
-        # Encode parameters
-        encoded_lang = quote_plus(language)
-        encoded_task = quote_plus(task_description)
-        
-        api_url = f"https://www.ibrahimfakhry.com/generate_code_snippet?language={encoded_lang}&task_description={encoded_task}"
-        
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            data = response.json()
-            context['code_snippet'] = data.get('code_snippet', '')
-    
-    return render(request, 'code_generator.html', context)
-
-@business_required
-def generate_faq(request):
-    from businesses.models import Business
-    context = {}
-    user = request.user
-    user_business = Business.objects.filter(user=user).first()
-    
-    if request.method == 'POST':
-        if not user_business:
-            messages.error(request, "No business associated with this account")
-            return render(request, 'faq_generator.html', context)
-            
-        company_name = user_business.name
-        product_service = request.POST.get('product_or_service', '')
-        common_questions = request.POST.get('common_questions', '')
-        
-        try:
-            # Create encoded URL parameters
-            encoded_name = quote_plus(company_name)
-            encoded_product = quote_plus(product_service)
-            encoded_questions = quote_plus(common_questions)
-            
-            api_url = f"https://www.ibrahimfakhry.com/generate_faq?company_name={encoded_name}&product_or_service={encoded_product}&common_questions={encoded_questions}"
-            
-            response = requests.get(api_url, timeout=10)
-            response.raise_for_status()
-            
-            data = response.json()
-            context['faq'] = data.get('faq', '')
-            context['company_name'] = company_name
-            context['product_or_service'] = product_service
-            
-        except requests.exceptions.RequestException as e:
-            messages.error(request, f"API Error: {str(e)}")
-        except ValueError:
-            messages.error(request, "Invalid response from API")
-    
-    context['user_business'] = user_business
-    return render(request, 'faq_generator.html', context)
-
-@business_required
-def generate_social_post(request):
-    from businesses.models import Business
-    context = {}
-    user = request.user
-    user_business = Business.objects.filter(user=user).first()
-    
-    if request.method == 'POST':
-        if not user_business:
-            messages.error(request, "No business associated with this account")
-            return render(request, 'social_post_generator.html', context)
-            
-        platform = request.POST.get('platform')
-        target_audience = request.POST.get('target_audience')
-        campaign_goal = request.POST.get('campaign_goal')
-        
-        try:
-            # Encode parameters
-            encoded_platform = quote_plus(platform)
-            encoded_audience = quote_plus(target_audience)
-            encoded_goal = quote_plus(campaign_goal)
-            
-            api_url = f"https://www.ibrahimfakhry.com/generate_social_media_post?platform={encoded_platform}&target_audience={encoded_audience}&campaign_goal={encoded_goal}"
-            
-            response = requests.get(api_url, timeout=10)
-            response.raise_for_status()
-            
-            data = response.json()
-            context['social_post'] = data.get('social_media_post', '')
-            context['platform'] = platform
-            context['target_audience'] = target_audience
-            
-        except requests.exceptions.RequestException as e:
-            messages.error(request, f"API Error: {str(e)}")
-        except ValueError:
-            messages.error(request, "Invalid response from API")
-    
-    context['user_business'] = user_business
-    return render(request, 'social_post_generator.html', context)
-
-@business_required
-def generate_email_campaign(request):
-    from businesses.models import Business
-    context = {}
-    user = request.user
-    user_business = Business.objects.filter(user=user).first()
-    
-    if request.method == 'POST':
-        if not user_business:
-            messages.error(request, "No business associated with this account")
-            return render(request, 'email_campaign_generator.html', context)
-            
-        company_name = user_business.name
-        campaign_goals = request.POST.get('campaign_goals')
-        target_audience = request.POST.get('target_audience')
-        
-        try:
-            # Encode parameters
-            encoded_name = quote_plus(company_name)
-            encoded_goals = quote_plus(campaign_goals)
-            encoded_audience = quote_plus(target_audience)
-            
-            api_url = f"https://www.ibrahimfakhry.com/generate_email_campaign?company_name={encoded_name}&campaign_goals={encoded_goals}&target_audience={encoded_audience}"
-            
-            response = requests.get(api_url, timeout=10)
-            response.raise_for_status()
-            
-            data = response.json()
-            context['email_campaign'] = data.get('email_campaign', '')
-            context['company_name'] = company_name
-            context['campaign_goals'] = campaign_goals
-            context['target_audience'] = target_audience
-            
-        except requests.exceptions.RequestException as e:
-            messages.error(request, f"API Error: {str(e)}")
-        except ValueError:
-            messages.error(request, "Invalid response from API")
-    
-    context['user_business'] = user_business
-    return render(request, 'email_campaign_generator.html', context)
-
-@business_required
-def generate_blog_ideas(request):
-    from businesses.models import Business
-    context = {}
-    user = request.user
-    user_business = Business.objects.filter(user=user).first()
-    
-    if request.method == 'POST':
-        topic = request.POST.get('topic')
-        target_audience = request.POST.get('target_audience')
-        
-        try:
-            # Encode parameters
-            encoded_topic = quote_plus(topic)
-            encoded_audience = quote_plus(target_audience)
-            
-            api_url = f"https://www.ibrahimfakhry.com/generate_blog_ideas?topic={encoded_topic}&target_audience={encoded_audience}"
-            
-            response = requests.get(api_url, timeout=10)
-            response.raise_for_status()
-            
-            data = response.json()
-            context['blog_ideas'] = data.get('blog_ideas', '')
-            context['topic'] = topic
-            context['target_audience'] = target_audience
-            
-        except requests.exceptions.RequestException as e:
-            messages.error(request, f"API Error: {str(e)}")
-        except ValueError:
-            messages.error(request, "Invalid response from API")
-    
-    return render(request, 'blog_ideas_generator.html', context)
-
-@business_required
-def generate_role_steps(request):
-    context = {}
-    
-    if request.method == 'POST':
-        user_name = request.POST.get('user_name')
-        user_role = request.POST.get('user_role')
-        project_name = request.POST.get('project_name')
-        project_description = request.POST.get('project_description')
-        
-        # Encode parameters
-        encoded_user_name = quote_plus(user_name)
-        encoded_user_role = quote_plus(user_role)
-        encoded_project_name = quote_plus(project_name)
-        encoded_project_description = quote_plus(project_description)
-        
-        api_url = f"https://www.ibrahimfakhry.com/generate_role_steps?user_name={encoded_user_name}&user_role={encoded_user_role}&project_name={encoded_project_name}&project_description={encoded_project_description}"
-        
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            data = response.json()
-            context['role_steps'] = data.get('role_steps', '')
-            context['user_name'] = user_name
-            context['user_role'] = user_role
-            context['project_name'] = project_name
-            context['project_description'] = project_description
-    
-    return render(request, 'role_steps_generator.html', context)
-
-@login_required
-@business_required
-def generate_onboarding_steps(request):
-    from businesses.models import Business
-    context = {}
-    
-    user = request.user
-    user_business = Business.objects.filter(user=user).first()
-    
-    if request.method == 'POST':
-        if not user_business:
-            context['error'] = "No business associated with this account"
-            return render(request, 'onboarding_steps_generator.html', context)
-            
-        company_name = user_business.name
-        platform_type = request.POST.get('platform_type')
-        user_role = request.POST.get('user_role')
-        
-        # Encode parameters
-        encoded_company_name = quote_plus(company_name)
-        encoded_platform_type = quote_plus(platform_type)
-        encoded_user_role = quote_plus(user_role)
-        
-        api_url = f"https://www.ibrahimfakhry.com/generate_onboarding_steps?company_name={encoded_company_name}&platform_type={encoded_platform_type}&user_role={encoded_user_role}"
-        
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            data = response.json()
-            context['onboarding_steps'] = data.get('onboarding_steps', '')
-            context['company_name'] = company_name
-            context['platform_type'] = platform_type
-            context['user_role'] = user_role
-    
-    context['user_business'] = user_business
-    return render(request, 'onboarding_steps_generator.html', context)
-
-@business_required
-def generate_marketing_copy(request):
-    context = {}
-    
-    if request.method == 'POST':
-        product_name = request.POST.get('product_name')
-        target_audience = request.POST.get('target_audience')
-        ad_goals = request.POST.get('ad_goals')
-        
-        # Encode parameters
-        encoded_product_name = quote_plus(product_name)
-        encoded_target_audience = quote_plus(target_audience)
-        encoded_ad_goals = quote_plus(ad_goals)
-        
-        api_url = f"https://www.ibrahimfakhry.com/generate_marketing_copy?product_name={encoded_product_name}&target_audience={encoded_target_audience}&ad_goals={encoded_ad_goals}"
-        
-        response = requests.get(api_url)
-        if response.status_code == 200:  # Fix the unmatched parenthesis
-            data = response.json()
-            context['marketing_copy'] = data.get('marketing_copy', '')
-    
-    return render(request, 'marketing_copy_generator.html', context)
-
-@business_required
-def generate_product_description(request):
-    context = {}
-    
-    if request.method == 'POST':
-        product_name = request.POST.get('product_name')
-        product_category = request.POST.get('product_category')
-        product_features = request.POST.get('product_features')
-        
-        # Encode parameters
-        encoded_product_name = quote_plus(product_name)
-        encoded_product_category = quote_plus(product_category)
-        encoded_product_features = quote_plus(product_features)
-        
-        api_url = f"https://www.ibrahimfakhry.com/generate_product_description?product_name={encoded_product_name}&product_category={encoded_product_category}&product_features={encoded_product_features}"
-        
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            data = response.json()
-            context['product_description'] = data.get('product_description', '')
-    
-    return render(request, 'product_description_generator.html', context)
-
-@login_required
-@business_required
-def generate_content_calendar(request):
-    from datetime import datetime
-    import json
-    import re
-    from urllib.parse import quote_plus
-    from django.http import JsonResponse
-    from django.db import IntegrityError
-    from businesses.models import Business
-    from .models import CalendarEvent
-
-    try:
-        if request.method != 'POST':
-            return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
-
-        # Parse request data
-        try:
-            data = json.loads(request.body)
-            content_type = data.get('content_type', '').strip()
-            start_date = data.get('start_date', '').strip()
-            end_date = data.get('end_date', '').strip()
-            
-            print(f"Received data - Content Type: {content_type}, Start: {start_date}, End: {end_date}")
-            
-            if not all([content_type, start_date, end_date]):
-                return JsonResponse({'status': 'error', 'message': 'Missing required fields'}, status=400)
-                
-        except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'}, status=400)
-
-        # Get user business
-        try:
-            user_business = Business.objects.get(user=request.user)
-        except Business.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'No business found for this user'}, status=400)
-
-        # Make API request
-        try:
-            api_url = (
-                f"https://www.ibrahimfakhry.com/generate_content_calendar?"
-                f"company_name={quote_plus(user_business.name)}&"
-                f"content_type={quote_plus(content_type)}&"
-                f"start_date={quote_plus(start_date)}&"
-                f"end_date={quote_plus(end_date)}"
-            )
-            
-            print(f"Making API request to: {api_url}")
-            
-            response = requests.get(api_url, timeout=10)
-            response.raise_for_status()
-            
-            api_data = response.json()
-            content_calendar = api_data.get('content_calendar', '')
-            
-            print(f"API Response received. Length: {len(content_calendar)}")
-            
-            if not content_calendar:
-                return JsonResponse({'status': 'error', 'message': 'No content received from API'}, status=400)
-            
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': f'API error: {str(e)}'}, status=500)
-
-        # Process content calendar
-        created_count = 0
-        max_title_length = CalendarEvent._meta.get_field('title').max_length
-
-        # Extract events using the bullet point format
-        event_pattern = r'\*\s*\*\*((?:Morning|Afternoon|Evening)\s*\((\d{1,2}:\d{2}\s*[AP]M)\)):\*\*\s*([^*\n]+)'
-        
-        # Find all events
-        events = re.finditer(event_pattern, content_calendar)
-        
-        # Extract the current date as we process events
-        current_date = None
-        date_pattern = r'\*\*(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)?,\s*February\s*(\d{1,2})(?:st|nd|rd|th)'
-        
-        for line in content_calendar.split('\n'):
-            # Check for new date
-            date_match = re.search(date_pattern, line)
-            if date_match:
-                day = int(date_match.group(1))
-                current_date = f"2025-02-{day:02d}"
-                print(f"Processing date: {current_date}")
-                continue
-                
-            # Try to find event in this line
-            event_match = re.search(event_pattern, line)
-            if current_date and event_match:
-                try:
-                    time_str = event_match.group(2).strip()
-                    content = event_match.group(3).strip()
-                    
-                    # Parse the datetime
-                    time_str = time_str.replace('AM', ' AM').replace('PM', ' PM').strip()
-                    full_datetime = datetime.strptime(f"{current_date} {time_str}", "%Y-%m-%d %I:%M %p")
-                    
-                    # Split content into title and description if possible
-                    parts = content.split(':', 1)
-                    if len(parts) > 1:
-                        title = parts[0].strip()
-                        description = parts[1].strip()
-                    else:
-                        title = content
-                        description = content
-
-                    # Create calendar event
-                    event = CalendarEvent.objects.create(
-                        user=request.user,
-                        title=title[:max_title_length],
-                        start_date=full_datetime.date(),
-                        end_date=full_datetime.date(),
-                        description=description
-                    )
-                    created_count += 1
-                    print(f"Created event: {title[:50]}")
-                    
-                except Exception as e:
-                    print(f"Error processing event: {str(e)}")
-                    continue
-
-        if created_count == 0:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'No valid events could be created from the API response.'
-            }, status=400)
-
-        return JsonResponse({
-            'status': 'success',
-            'message': f'Successfully created {created_count} calendar events',
-            'created_count': created_count
-        })
-
-    except Exception as e:
-        print(f"Critical error: {str(e)}")
-        return JsonResponse({
-            'status': 'error',
-            'message': f'Unexpected error: {str(e)}'
-        }, status=500)
-
-@login_required
-@business_required
-def ai_tools(request):
-    return render(request, 'ai_tools.html')
 
 
 def plans(request):
@@ -1454,25 +838,51 @@ def add_event(request):
 
             if not title or not start_date:
                 return JsonResponse({'status': 'error', 'message': 'Missing required fields'}, status=400)
+            
+            print(f"Received event data: title={title}, start_date={start_date}, end_date={end_date}")
 
             # Parse and validate dates
-            start_date = parse_date(start_date)
-            end_date = parse_date(end_date) if end_date else start_date
-
-            if not start_date or (end_date and end_date < start_date):
-                return JsonResponse({'status': 'error', 'message': 'Invalid date range'}, status=400)
+            try:
+                start_date = parse_date(start_date)
+                end_date = parse_date(end_date) if end_date else start_date
+                
+                if not start_date:
+                    print(f"Failed to parse start_date: {data.get('start_date')}")
+                    return JsonResponse({'status': 'error', 'message': 'Invalid start date format'}, status=400)
+                    
+                if not end_date:
+                    print(f"Failed to parse end_date: {data.get('end_date')}")
+                    return JsonResponse({'status': 'error', 'message': 'Invalid end date format'}, status=400)
+                
+                if end_date < start_date:
+                    return JsonResponse({'status': 'error', 'message': 'End date cannot be before start date'}, status=400)
+                
+            except Exception as e:
+                print(f"Date parsing error: {str(e)}")
+                return JsonResponse({'status': 'error', 'message': f'Date parsing error: {str(e)}'}, status=400)
 
             # Save the event
-            event = CalendarEvent.objects.create(
-                user=request.user,
-                title=title,
-                start_date=start_date,
-                end_date=end_date
-            )
-            return JsonResponse({'status': 'success', 'event_id': event.id})
-        except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+            try:
+                event = CalendarEvent.objects.create(
+                    user=request.user,
+                    title=title,
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                print(f"Event created successfully with ID: {event.id}")
+                return JsonResponse({'status': 'success', 'event_id': event.id})
+            except Exception as e:
+                print(f"Database error creating event: {str(e)}")
+                return JsonResponse({'status': 'error', 'message': f'Failed to create event: {str(e)}'}, status=500)
+                
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {str(e)}")
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON format'}, status=400)
+        except Exception as e:
+            print(f"Unexpected error: {str(e)}")
+            return JsonResponse({'status': 'error', 'message': f'Unexpected error: {str(e)}'}, status=500)
+            
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
 
 
 @csrf_exempt
@@ -1529,48 +939,11 @@ def delete_event(request):
             return JsonResponse({'status': 'success'})
         except CalendarEvent.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Event not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 
-@csrf_exempt
-@login_required
-def delete_event(request, event_id):
-    """Delete an event."""
-    if request.method == 'POST':
-        try:
-            event = CalendarEvent.objects.get(id=event_id, user=request.user)
-            event.delete()
-            return JsonResponse({'status': 'success'})
-        except CalendarEvent.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Event not found'}, status=404)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-
-
-@business_required
-def ai_tools(request):
-    # Define the AI tools with their descriptions, valid icons, and URLs
-    app_name = 'welcome'  # Replace 'welcome' with your actual app name if different
-    tools = [
-        {'name': 'Generate Terms', 'icon': 'file-contract', 'url': f'{app_name}:generate_terms'},
-        {'name': 'Generate Agreement', 'icon': 'file-signature', 'url': f'{app_name}:generate_agreement'},
-        {'name': 'Generate Forecast', 'icon': 'chart-line', 'url': f'{app_name}:generate_forecast'},
-        {'name': 'Generate Schedule', 'icon': 'calendar-alt', 'url': f'{app_name}:generate_schedule'},
-        {'name': 'Generate Code', 'icon': 'code', 'url': f'{app_name}:generate_code'},
-        {'name': 'Generate FAQ', 'icon': 'question-circle', 'url': f'{app_name}:generate_faq'},
-        {'name': 'Generate Social Post', 'icon': 'share-square', 'url': f'{app_name}:generate_social_post'},
-        {'name': 'Generate Email Campaign', 'icon': 'envelope', 'url': f'{app_name}:generate_email_campaign'},
-        {'name': 'Generate Blog Ideas', 'icon': 'pen-nib', 'url': f'{app_name}:generate_blog_ideas'},
-        {'name': 'Generate Role Steps', 'icon': 'tasks', 'url': f'{app_name}:generate_role_steps'},
-        {'name': 'Generate Onboarding Steps', 'icon': 'user-check', 'url': f'{app_name}:generate_onboarding_steps'},
-        {'name': 'Generate Marketing Copy', 'icon': 'pen-fancy', 'url': f'{app_name}:generate_marketing_copy'},
-        {'name': 'Generate Product Description', 'icon': 'box-open', 'url': f'{app_name}:generate_product_description'},
-        {'name': 'Generate Content Calendar', 'icon': 'calendar-day', 'url': f'{app_name}:generate_content_calendar'},
-        {'name': 'Help', 'icon': 'question-circle', 'url': f'{app_name}:help'},  # Add Help Tool
-    ]
-
-    # Render the template with the tools data
-    return render(request, 'ai_tools.html', {'tools': tools})
 
 
 def notification_list(request):
@@ -1599,54 +972,83 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q  # Import Q for complex queries
 
-@login_required
 def search_suggestions(request):
-    from welcome.models import CustomUser, ProUserTask
+    from welcome.models import CustomUser, ProUserTask, UnloggedUserTask, FAQ
     from businesses.models import Business
     from projects.models import Project
 
     query = request.GET.get('query', '').strip()
-    user = request.user
     suggestions = []
 
     print(f"Search query received: {query}")  # Debug log
     if query:
         try:
-            # Users
-            user_results = CustomUser.objects.filter(username__icontains=query)[:5]
-            print(f"Found {len(user_results)} user results")  # Debug log
-            for user_item in user_results:
+            # Always search FAQs for all users
+            faq_results = FAQ.objects.filter(question__icontains=query)[:5]
+            print(f"Found {len(faq_results)} FAQ results")  # Debug log
+            for faq_item in faq_results:
                 suggestions.append({
-                    'name': user_item.username,
-                    'url': f'/profile/{user_item.id}'
+                    'name': faq_item.question,
+                    'url': f'/faq/?query={query}',
+                    'type': 'FAQ'
                 })
 
-            # Projects
-            project_results = Project.objects.filter(name__icontains=query)[:5]
-            print(f"Found {len(project_results)} project results")  # Debug log
-            for project_item in project_results:
-                suggestions.append({
-                    'name': project_item.name,
-                    'url': f'/project/{project_item.id}'
-                })
+            if request.user.is_authenticated:
+                user = request.user
+                # Users
+                user_results = CustomUser.objects.filter(username__icontains=query)[:5]
+                print(f"Found {len(user_results)} user results")  # Debug log
+                for user_item in user_results:
+                    suggestions.append({
+                        'name': user_item.username,
+                        'url': f'/profile/{user_item.id}',
+                        'type': 'User'
+                    })
 
-            # Businesses
-            business_results = Business.objects.filter(name__icontains=query)[:5]
-            print(f"Found {len(business_results)} business results")  # Debug log
-            for business_item in business_results:
-                suggestions.append({
-                    'name': business_item.name,
-                    'url': f'/business/{business_item.id}'  # Updated URL
-                })
+                # Projects
+                project_results = Project.objects.filter(name__icontains=query)[:5]
+                print(f"Found {len(project_results)} project results")  # Debug log
+                for project_item in project_results:
+                    suggestions.append({
+                        'name': project_item.name,
+                        'url': f'/project/{project_item.id}',
+                        'type': 'Project'
+                    })
 
-            # Tasks
-            task_results = ProUserTask.objects.filter(task_name__icontains=query)[:5]
-            print(f"Found {len(task_results)} task results")  # Debug log
-            for task_item in task_results:
-                suggestions.append({
-                    'name': task_item.task_name,
-                    'url': f'/task/{task_item.id}'
-                })
+                # Businesses
+                business_results = Business.objects.filter(name__icontains=query)[:5]
+                print(f"Found {len(business_results)} business results")  # Debug log
+                for business_item in business_results:
+                    suggestions.append({
+                        'name': business_item.name,
+                        'url': f'/business/{business_item.id}',  # Updated URL
+                        'type': 'Business'
+                    })
+
+                # Tasks for logged-in users
+                task_results = ProUserTask.objects.filter(task_name__icontains=query)[:5]
+                print(f"Found {len(task_results)} task results")  # Debug log
+                for task_item in task_results:
+                    suggestions.append({
+                        'name': task_item.task_name,
+                        'url': f'/task/{task_item.id}',
+                        'type': 'Task'
+                    })
+            else:
+                # For unlogged users, get tasks associated with their IP
+                ip_address = request.META.get('REMOTE_ADDR')
+                if ip_address:
+                    unlogged_tasks = UnloggedUserTask.objects.filter(
+                        ip_address=ip_address,
+                        task_name__icontains=query
+                    )[:5]
+                    print(f"Found {len(unlogged_tasks)} unlogged user tasks for IP {ip_address}")
+                    for task_item in unlogged_tasks:
+                        suggestions.append({
+                            'name': task_item.task_name,
+                            'url': f'/tasks/',  # Redirect to tasks page
+                            'type': 'Task'
+                        })
         except Exception as e:
             print(f"Error in search_suggestions: {str(e)}")  # Debug log
 
@@ -1655,8 +1057,20 @@ def search_suggestions(request):
 
 def faq_view(request):
     from .models import FAQ
-    faqs = FAQ.objects.all().order_by('created_at')
-    return render(request, 'faq.html', {'faqs': faqs})
+    
+    query = request.GET.get('query', '').strip()
+    
+    if query:
+        # Filter FAQs based on the search query
+        faqs = FAQ.objects.filter(
+            models.Q(question__icontains=query) | 
+            models.Q(answer__icontains=query)
+        ).order_by('created_at')
+    else:
+        # Get all FAQs if no search query
+        faqs = FAQ.objects.all().order_by('created_at')
+        
+    return render(request, 'faq.html', {'faqs': faqs, 'query': query})
 
 
 @login_required

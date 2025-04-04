@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'projects',
     'businesses',
     'users',
-    'tasks'
+    'tasks',
+    'ai_tools',
 ]
 
 MIDDLEWARE = [
@@ -69,6 +70,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',  # Ensure this line is included
                 'welcome.context_processors.notifications',  # Add our notifications context processor
+                'welcome.context_processors.business_details',  # Add business details context processor
             ],
         },
     },
@@ -157,7 +159,7 @@ PAYMOB_API_KEY = 'ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3
 PAYMOB_INTEGRATION_ID = '4627071'
 PAYMOB_IFRAME_ID = '860965'
 
-ALLOWED_HOSTS = ['netfull.site', '.netfull.site','127.0.0.1']
+ALLOWED_HOSTS = ['netfull.site', '.netfull.site','127.0.0.1','localhost:8000','localhost']
 
 ROOT_HOSTCONF = 'todoapp.hosts'
 DEFAULT_HOST = 'www'

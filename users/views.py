@@ -100,6 +100,9 @@ def profile(request, user_id):
     if request.user.id != user_id:
         return redirect('users:member_details', user_id=user_id)
 
+    if user_id is None:
+        return redirect('users:login')
+
     from messaging.models import Messages
     # Fetch the user object
     user = get_object_or_404(CustomUser, id=user_id)

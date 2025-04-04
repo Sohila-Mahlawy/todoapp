@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <link rel="apple-touch-icon" sizes="76x76" href="{% static 'assets/img/apple-icon.png' %}">
-  <link rel="icon" type="image/png" href="{% static 'assets/img/favicon.png' %}">
+  <link rel="icon" type="image/png" href="{% static 'assets/img/favicon.ico' %}">
   <title>
     Material Dashboard 3 by Creative Tim
   </title>
@@ -31,9 +31,17 @@
   <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2  bg-white my-2" id="sidenav-main">
     <div class="sidenav-header">
       <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
-      <a class="navbar-brand px-4 py-3 m-0" href=" https://demos.creative-tim.com/material-dashboard/pages/dashboard " target="_blank">
+      <a class="navbar-brand px-4 py-3 m-0" href="/" target="_blank">   
+        {% if business_logo %}
+        <img src="{{ business_logo }}" alt="Business Logo" class="business-logo">
+        {% else %}
         <img src="{% static 'assets/img/netfull.png' %}" class="navbar-brand-img" width="26" height="26" alt="main_logo">
+        {% endif %}
+        {% if business_name %}
+        <span class="ms-1 text-sm text-dark">{{ business_name }}</span>
+        {% else %}
         <span class="ms-1 text-sm text-dark">Checkify</span>
+        {% endif %}
       </a>
     </div>
     <hr class="horizontal dark mt-0 mb-2">
@@ -99,7 +107,7 @@
     </div>
     <div class="sidenav-footer position-absolute w-100 bottom-0 ">
       <div class="mx-3">
-        <a class="btn btn-outline-dark mt-4 w-100" href="https://www.creative-tim.com/learning-lab/bootstrap/overview/material-dashboard?ref=sidebarfree" type="button">Documentation</a>
+        <a class="btn btn-outline-dark mt-4 w-100" id="startTour" type="button">Take a Tour</a>
         <a class="btn bg-gradient-dark w-100" href="/plans" type="button">Upgrade to pro</a>
       </div>
     </div>
@@ -121,7 +129,18 @@
           <div class="ms-md-auto pe-md-3 d-flex align-items-center">
             <div class="input-group input-group-outline">
               <label class="form-label">Type here...</label>
-              <input type="text" class="form-control">
+              <input type="text" class="form-control" id="search-bar">
+              <ul id="suggestions-list" class="dropdown-menu show" style="display: none;"></ul>
+            </div>
+          </div>
+          <!-- Tour Overlay and Content -->
+          <div id="tourOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9998;"></div>
+          <div id="tourContent" style="display: none; position: fixed; z-index: 9999; background: white; padding: 20px; border-radius: 5px; max-width: 300px;">
+            <h5 id="tourTitle"></h5>
+            <p id="tourDescription"></p>
+            <div class="text-end mt-3">
+              <button class="btn btn-secondary btn-sm" id="prevStep">Previous</button>
+              <button class="btn btn-primary btn-sm" id="nextStep">Next</button>
             </div>
           </div>
           <ul class="navbar-nav d-flex align-items-center  justify-content-end">
@@ -152,80 +171,70 @@
             <li class="nav-item dropdown pe-3 d-flex align-items-center">
               <a href="javascript:;" class="nav-link text-body p-0" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="material-symbols-rounded">notifications</i>
+                {% if unread_notification_count > 0 %}
+                <span class="position-absolute top-5 start-100 translate-middle badge rounded-pill bg-danger">
+                  {{ unread_notification_count }}
+                </span>
+                {% endif %}
               </a>
-              <ul class="dropdown-menu  dropdown-menu-end  px-2 py-3 me-sm-n4" aria-labelledby="dropdownMenuButton">
-                <li class="mb-2">
+              <ul class="dropdown-menu dropdown-menu-end px-2 py-3 me-sm-n4" aria-labelledby="dropdownMenuButton">
+                {% if notifications|length > 0 %}
+                {% for notification in notifications %}
+                  <li class="mb-2 notification-item {% if notification.is_read %}opacity-6{% endif %}" data-id="{{ notification.id }}">
                   <a class="dropdown-item border-radius-md" href="javascript:;">
                     <div class="d-flex py-1">
-                      <div class="my-auto">
-                        <img src="../static/assets/img/team-2.jpg" class="avatar avatar-sm  me-3 ">
-                      </div>
                       <div class="d-flex flex-column justify-content-center">
                         <h6 class="text-sm font-weight-normal mb-1">
-                          <span class="font-weight-bold">New message</span> from Laur
+                            {% if notification.notification_type == 'info' %}
+                            <span class="font-weight-bold text-info">Info:</span>
+                            {% elif notification.notification_type == 'success' %}
+                            <span class="font-weight-bold text-success">Success:</span>
+                            {% elif notification.notification_type == 'warning' %}
+                            <span class="font-weight-bold text-warning">Warning:</span>
+                            {% else %}
+                            <span class="font-weight-bold">Notification:</span>
+                            {% endif %}
+                            {{ notification.message }}
                         </h6>
                         <p class="text-xs text-secondary mb-0">
                           <i class="fa fa-clock me-1"></i>
-                          13 minutes ago
+                            {{ notification.created_at|timesince }} ago
+                            {% if not notification.is_read %}
+                            <button class="btn btn-link text-xs text-primary p-0 ms-2 mark-read-btn" data-id="{{ notification.id }}">
+                              Mark as read
+                            </button>
+                            {% endif %}
                         </p>
                       </div>
                     </div>
                   </a>
                 </li>
-                <li class="mb-2">
-                  <a class="dropdown-item border-radius-md" href="javascript:;">
-                    <div class="d-flex py-1">
-                      <div class="my-auto">
-                        <img src="../static/assets/img/small-logos/logo-spotify.svg" class="avatar avatar-sm bg-gradient-dark  me-3 ">
-                      </div>
-                      <div class="d-flex flex-column justify-content-center">
-                        <h6 class="text-sm font-weight-normal mb-1">
-                          <span class="font-weight-bold">New album</span> by Travis Scott
-                        </h6>
-                        <p class="text-xs text-secondary mb-0">
-                          <i class="fa fa-clock me-1"></i>
-                          1 day
-                        </p>
-                      </div>
-                    </div>
+                  {% endfor %}
+                  <li class="text-center">
+                    <a href="/notifications" class="dropdown-item text-primary">
+                      View all notifications
                   </a>
                 </li>
-                <li>
-                  <a class="dropdown-item border-radius-md" href="javascript:;">
-                    <div class="d-flex py-1">
-                      <div class="avatar avatar-sm bg-gradient-secondary  me-3  my-auto">
-                        <svg width="12px" height="12px" viewBox="0 0 43 36" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                          <title>credit-card</title>
-                          <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                            <g transform="translate(-2169.000000, -745.000000)" fill="#FFFFFF" fill-rule="nonzero">
-                              <g transform="translate(1716.000000, 291.000000)">
-                                <g transform="translate(453.000000, 454.000000)">
-                                  <path class="color-background" d="M43,10.7482083 L43,3.58333333 C43,1.60354167 41.3964583,0 39.4166667,0 L3.58333333,0 C1.60354167,0 0,1.60354167 0,3.58333333 L0,10.7482083 L43,10.7482083 Z" opacity="0.593633743"></path>
-                                  <path class="color-background" d="M0,16.125 L0,32.25 C0,34.2297917 1.60354167,35.8333333 3.58333333,35.8333333 L39.4166667,35.8333333 C41.3964583,35.8333333 43,34.2297917 43,32.25 L43,16.125 L0,16.125 Z M19.7083333,26.875 L7.16666667,26.875 L7.16666667,23.2916667 L19.7083333,23.2916667 L19.7083333,26.875 Z M35.8333333,26.875 L28.6666667,26.875 L28.6666667,23.2916667 L35.8333333,23.2916667 L35.8333333,26.875 Z"></path>
-                                </g>
-                              </g>
-                            </g>
-                          </g>
-                        </svg>
-                      </div>
-                      <div class="d-flex flex-column justify-content-center">
-                        <h6 class="text-sm font-weight-normal mb-1">
-                          Payment successfully completed
-                        </h6>
-                        <p class="text-xs text-secondary mb-0">
-                          <i class="fa fa-clock me-1"></i>
-                          2 days
-                        </p>
-                      </div>
-                    </div>
-                  </a>
+                {% else %}
+                  <li class="text-center py-2">
+                    <span class="text-xs text-secondary">No notifications</span>
                 </li>
+                {% endif %}
               </ul>
             </li>
             <li class="nav-item d-flex align-items-center">
-              <a href="/profile/{{user.id}}" class="nav-link text-body font-weight-bold px-0">
-                <i class="material-symbols-rounded">account_circle</i>
-              </a>
+              {% if user.is_authenticated %}
+              <li class="nav-item d-flex align-items-center">
+                <a href="{% url 'users:profile' user.id %}" class="nav-link text-body font-weight-bold px-0">
+                  <i class="material-symbols-rounded">account_circle</i>
+                </a>
+              </li>
+              {% else %}
+              <li class="nav-item d-flex align-items-center">
+                <a href="{% url 'users:login' %}" class="nav-link text-body font-weight-bold px-0">
+                  <i class="material-symbols-rounded">account_circle</i>
+                </a>
+              {% endif %}
             </li>
           </ul>
         </div>
@@ -238,9 +247,8 @@
       <!-- Child templates will insert content here -->
       {% endblock %}
     </div>
-  </main>
 
-  <footer class="footer py-4  ">
+  <footer class="footer py-4">
     <div class="container-fluid">
       <div class="row align-items-center justify-content-lg-between">
         <div class="col-lg-6 mb-lg-0 mb-4">
@@ -248,24 +256,13 @@
             © <script>
               document.write(new Date().getFullYear())
             </script>,
-            made with <i class="fa fa-heart"></i> by
-            <a href="https://www.creative-tim.com" class="font-weight-bold" target="_blank">Creative Tim</a>
-            for a better web.
+            Net Full. All Rights Reserved
           </div>
         </div>
         <div class="col-lg-6">
-          <ul class="nav nav-footer justify-content-center justify-content-lg-end">
+          <ul class="nav nav-footer justify-content-start">
             <li class="nav-item">
-              <a href="https://www.creative-tim.com" class="nav-link text-muted" target="_blank">Creative Tim</a>
-            </li>
-            <li class="nav-item">
-              <a href="https://www.creative-tim.com/presentation" class="nav-link text-muted" target="_blank">About Us</a>
-            </li>
-            <li class="nav-item">
-              <a href="https://www.creative-tim.com/blog" class="nav-link text-muted" target="_blank">Blog</a>
-            </li>
-            <li class="nav-item">
-              <a href="https://www.creative-tim.com/license" class="nav-link pe-0 text-muted" target="_blank">License</a>
+              <a href="https://www.netfull.site" class="nav-link text-muted ps-0" target="_blank">Net Full</a>
             </li>
           </ul>
         </div>
@@ -281,7 +278,7 @@
 <div class="card shadow-lg">
   <div class="card-header pb-0 pt-3">
     <div class="float-start">
-      <h5 class="mt-3 mb-0">Material UI Configurator</h5>
+      <h5 class="mt-3 mb-0">UI Configurator</h5>
       <p>See our dashboard options.</p>
     </div>
     <div class="float-end mt-4">
@@ -289,7 +286,6 @@
         <i class="material-symbols-rounded">clear</i>
       </button>
     </div>
-    <!-- End Toggle Button -->
   </div>
   <hr class="horizontal dark my-1">
   <div class="card-body pt-sm-3 pt-0">
@@ -297,44 +293,58 @@
     <div>
       <h6 class="mb-0">Sidebar Colors</h6>
     </div>
-    <a href="javascript:void(0)" class="switch-trigger background-color">
-      <div class="badge-colors my-2 text-start">
-        <span class="badge filter bg-gradient-primary" data-color="primary" onclick="sidebarColor(this)"></span>
-        <span class="badge filter bg-gradient-dark active" data-color="dark" onclick="sidebarColor(this)"></span>
-        <span class="badge filter bg-gradient-info" data-color="info" onclick="sidebarColor(this)"></span>
-        <span class="badge filter bg-gradient-success" data-color="success" onclick="sidebarColor(this)"></span>
-        <span class="badge filter bg-gradient-warning" data-color="warning" onclick="sidebarColor(this)"></span>
-        <span class="badge filter bg-gradient-danger" data-color="danger" onclick="sidebarColor(this)"></span>
-      </div>
-    </a>
+    <div class="badge-colors my-2 text-start">
+      <span class="badge filter bg-gradient-primary" data-color="primary" onclick="sidebarColor(this)" 
+            {% if user.ui_settings.sidebar_color == 'bg-gradient-primary' %}style="border: 3px solid #344767"{% endif %}></span>
+      <span class="badge filter bg-gradient-dark" data-color="dark" onclick="sidebarColor(this)"
+            {% if user.ui_settings.sidebar_color == 'bg-gradient-dark' %}style="border: 3px solid #344767"{% endif %}></span>
+      <span class="badge filter bg-gradient-info" data-color="info" onclick="sidebarColor(this)" 
+            {% if user.ui_settings.sidebar_color == 'bg-gradient-info' %}style="border: 3px solid #344767"{% endif %}></span>
+      <span class="badge filter bg-gradient-success" data-color="success" onclick="sidebarColor(this)" 
+            {% if user.ui_settings.sidebar_color == 'bg-gradient-success' %}style="border: 3px solid #344767"{% endif %}></span>
+      <span class="badge filter bg-gradient-warning" data-color="warning" onclick="sidebarColor(this)" 
+            {% if user.ui_settings.sidebar_color == 'bg-gradient-warning' %}style="border: 3px solid #344767"{% endif %}></span>
+      <span class="badge filter bg-gradient-danger" data-color="danger" onclick="sidebarColor(this)" 
+            {% if user.ui_settings.sidebar_color == 'bg-gradient-danger' %}style="border: 3px solid #344767"{% endif %}></span>
+      <span class="badge filter bg-white border border-dark" data-color="white" onclick="sidebarColor(this)" 
+            {% if user.ui_settings.sidebar_color == 'bg-white' %}style="border: 3px solid #344767"{% endif %}></span>
+    </div>
     <!-- Sidenav Type -->
     <div class="mt-3">
       <h6 class="mb-0">Sidenav Type</h6>
       <p class="text-sm">Choose between different sidenav types.</p>
     </div>
     <div class="d-flex">
-      <button class="btn bg-gradient-dark px-3 mb-2" data-class="bg-gradient-dark" onclick="sidebarType(this)">Dark</button>
-      <button class="btn bg-gradient-dark px-3 mb-2 ms-2" data-class="bg-transparent" onclick="sidebarType(this)">Transparent</button>
-      <button class="btn bg-gradient-dark px-3 mb-2  active ms-2" data-class="bg-white" onclick="sidebarType(this)">White</button>
+      <button class="btn bg-gradient-dark px-3 mb-2 {% if user.ui_settings.sidenav_type == 'bg-gradient-dark' %}active{% endif %}" 
+              data-class="bg-gradient-dark" onclick="sidebarType(this)">Dark</button>
+      <button class="btn bg-gradient-dark px-3 mb-2 ms-2 {% if user.ui_settings.sidenav_type == 'bg-transparent' %}active{% endif %}" 
+              data-class="bg-transparent" onclick="sidebarType(this)">Transparent</button>
+      <button class="btn bg-gradient-dark px-3 mb-2 ms-2 {% if user.ui_settings.sidenav_type == 'bg-white' %}active{% endif %}" 
+              data-class="bg-white" onclick="sidebarType(this)">White</button>
     </div>
     <p class="text-sm d-xl-none d-block mt-2">You can change the sidenav type just on desktop view.</p>
     <!-- Navbar Fixed -->
     <div class="mt-3 d-flex">
       <h6 class="mb-0">Navbar Fixed</h6>
       <div class="form-check form-switch ps-0 ms-auto my-auto">
-        <input class="form-check-input mt-1 ms-auto" type="checkbox" id="navbarFixed" onclick="navbarFixed(this)">
+        <input class="form-check-input mt-1 ms-auto" type="checkbox" id="navbarFixed" 
+               onclick="navbarFixed(this)" 
+               {% if user.ui_settings.navbar_fixed %}checked{% endif %}
+               title="Toggle Navbar Fixed Position"
+               aria-label="Toggle Navbar Fixed Position">
       </div>
     </div>
     <hr class="horizontal dark my-3">
     <div class="mt-2 d-flex">
       <h6 class="mb-0">Light / Dark</h6>
       <div class="form-check form-switch ps-0 ms-auto my-auto">
-        <input class="form-check-input mt-1 ms-auto" type="checkbox" id="dark-version" onclick="darkMode(this)">
+        <input class="form-check-input mt-1 ms-auto" type="checkbox" id="dark-version" 
+               onclick="darkMode(this)" 
+               {% if user.ui_settings.dark_mode %}checked{% endif %}
+               title="Toggle Dark Mode"
+               aria-label="Toggle Dark Mode">
       </div>
     </div>
-    <hr class="horizontal dark my-sm-4">
-    <a class="btn bg-gradient-info w-100" href="https://www.creative-tim.com/product/material-dashboard-pro">Free Download</a>
-    <a class="btn btn-outline-dark w-100" href="https://www.creative-tim.com/learning-lab/bootstrap/overview/material-dashboard">View documentation</a>
   </div>
 </div>
 </div>
@@ -380,6 +390,923 @@ if (win && document.querySelector('#sidenav-scrollbar')) {
         }
     });
 </script>
+
+<!-- Tour Script -->
+<script>
+// Define tour steps for messaging interface
+const tourSteps = [
+  {
+    element: '#sidenav-main',
+    title: 'Messaging Navigation',
+    description: 'This sidebar contains all the options you need to manage your messages.',
+    position: 'right'
+  },
+  {
+    element: '.nav-link.active',
+    title: 'Inbox',
+    description: 'View all your received messages in the inbox.',
+    position: 'right'
+  },
+  {
+    element: 'a[href*="send_message"]',
+    title: 'Compose Message',
+    description: 'Write and send new messages to other users.',
+    position: 'right'
+  },
+  {
+    element: 'a[href*="#sent"]',
+    title: 'Sent Messages',
+    description: 'View messages you have sent to others.',
+    position: 'right'
+  },
+  {
+    element: '.navbar-nav',
+    title: 'Navigation Bar',
+    description: 'Access search, settings, and your profile from the top navigation bar.',
+    position: 'bottom'
+  }
+];
+
+let currentStep = 0;
+
+// Initialize the tour when "Take a Tour" is clicked
+document.addEventListener('DOMContentLoaded', function() {
+  const startTourButton = document.getElementById('startTour');
+  if (startTourButton) {
+    startTourButton.addEventListener('click', function() {
+      currentStep = 0;
+      window.scrollTo(0, 0);
+      startTour();
+    });
+  }
+  
+  // Set up navigation buttons
+  document.getElementById('nextStep').addEventListener('click', function() {
+    if (currentStep < tourSteps.length - 1) {
+      currentStep++;
+      startTour();
+    } else {
+      endTour();
+    }
+  });
+
+  document.getElementById('prevStep').addEventListener('click', function() {
+    if (currentStep > 0) {
+      currentStep--;
+      startTour();
+    }
+  });
+  
+  // Close tour when clicking overlay
+  document.getElementById('tourOverlay').addEventListener('click', endTour);
+});
+
+function startTour() {
+  const step = tourSteps[currentStep];
+  const element = document.querySelector(step.element);
+  
+  if (element) {
+    // Ensure the element is in view
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Small delay to allow scrolling to complete
+    setTimeout(() => {
+      // Show overlay
+      const overlay = document.getElementById('tourOverlay');
+      overlay.style.display = 'block';
+      
+      // Highlight element
+      const rect = element.getBoundingClientRect();
+      overlay.style.clipPath = `polygon(
+        0% 0%,
+        0% 100%,
+        ${rect.left}px 100%,
+        ${rect.left}px ${rect.top}px,
+        ${rect.right}px ${rect.top}px,
+        ${rect.right}px ${rect.bottom}px,
+        ${rect.left}px ${rect.bottom}px,
+        ${rect.left}px 100%,
+        100% 100%,
+        100% 0%
+      )`;
+      
+      // Position and show content
+      const content = document.getElementById('tourContent');
+      content.style.display = 'block';
+      document.getElementById('tourTitle').textContent = step.title;
+      document.getElementById('tourDescription').textContent = step.description;
+      
+      // Position content based on step.position
+      positionTourContent(content, rect, step.position);
+    }, 300);
+  }
+}
+
+function positionTourContent(content, rect, position) {
+  switch(position) {
+    case 'top':
+      content.style.top = `${rect.top - content.offsetHeight - 20}px`;
+      content.style.left = `${rect.left + rect.width/2 - content.offsetWidth/2}px`;
+      break;
+    case 'bottom':
+      content.style.top = `${rect.bottom + 20}px`;
+      content.style.left = `${rect.left + rect.width/2 - content.offsetWidth/2}px`;
+      break;
+    case 'left':
+      content.style.top = `${rect.top + rect.height/2 - content.offsetHeight/2}px`;
+      content.style.left = `${rect.left - content.offsetWidth - 20}px`;
+      break;
+    case 'right':
+      content.style.top = `${rect.top + rect.height/2 - content.offsetHeight/2}px`;
+      content.style.left = `${rect.right + 20}px`;
+      break;
+  }
+}
+
+function endTour() {
+  document.getElementById('tourOverlay').style.display = 'none';
+  document.getElementById('tourContent').style.display = 'none';
+}
+
+// Reposition tour on window resize or scroll
+window.addEventListener('resize', function() {
+  if (document.getElementById('tourOverlay').style.display === 'block') {
+    startTour();
+  }
+});
+
+window.addEventListener('scroll', function() {
+  if (document.getElementById('tourOverlay').style.display === 'block') {
+    startTour();
+  }
+});
+</script>
+
+
+<script>
+  function updateUISettings(setting, value) {
+    console.log(`Updating ${setting} to ${value}`); // Debug log
+    
+    // For boolean values like navbar_fixed and dark_mode, ensure they're proper booleans
+    if (value === true || value === false) {
+      value = value;
+    }
+    
+    fetch('/update-ui-settings/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        setting: setting,
+        value: value
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log('Response:', data); // Debug log
+      if (!data.success) {
+        console.error('Failed to update UI settings:', data.error);
+      } else {
+        console.log('Settings updated successfully');
+      }
+    })
+    .catch(error => {
+      console.error('Error updating UI settings:', error);
+    });
+  }
+  
+  // Update the updateSidebarTextColor function to handle active links properly
+  function updateSidebarTextColor(color) {
+    const sidebarLinks = document.querySelectorAll('.sidenav .nav-link');
+    const sidebarTexts = document.querySelectorAll('.sidenav .nav-link-text');
+    const sidebarIcons = document.querySelectorAll('.sidenav .material-symbols-rounded');
+    const tourButton = document.getElementById('startTour');
+    const sidenavLogo = document.querySelector('.sidenav-header .navbar-brand .text-sm');
+    const activeLink = document.querySelector('.sidenav .nav-link.active');
+    
+    if (color === 'dark' || color === 'primary') {
+      // Change text to white for dark backgrounds
+      sidebarLinks.forEach(link => {
+        if (!link.classList.contains('active')) {
+          link.classList.remove('text-dark');
+          link.classList.add('text-white');
+        }
+      });
+      sidebarTexts.forEach(text => {
+        text.classList.remove('text-dark');
+        text.classList.add('text-white');
+      });
+      sidebarIcons.forEach(icon => {
+        icon.classList.remove('text-dark');
+        icon.classList.add('text-white');
+      });
+      
+      // Update tour button
+      if (tourButton) {
+        tourButton.classList.remove('btn-outline-dark');
+        tourButton.classList.add('btn-outline-light');
+      }
+      
+      // Update logo text color
+      if (sidenavLogo) {
+        sidenavLogo.classList.remove('text-dark');
+        sidenavLogo.classList.add('text-white');
+      }
+      
+      // Make sure active link is always white text on dark background
+      if (activeLink) {
+        activeLink.classList.remove('text-dark');
+        activeLink.classList.add('text-white');
+      }
+    } else {
+      resetSidebarTextColor();
+    }
+  }
+  
+  // Update the resetSidebarTextColor function to handle active links
+  function resetSidebarTextColor() {
+    const sidebarLinks = document.querySelectorAll('.sidenav .nav-link:not(.active)');
+    const sidebarTexts = document.querySelectorAll('.sidenav .nav-link:not(.active) .nav-link-text');
+    const sidebarIcons = document.querySelectorAll('.sidenav .nav-link:not(.active) .material-symbols-rounded');
+    const tourButton = document.getElementById('startTour');
+    const sidenavLogo = document.querySelector('.sidenav-header .navbar-brand .text-sm');
+    const activeLink = document.querySelector('.sidenav .nav-link.active');
+    
+    // Change non-active links to dark text
+    sidebarLinks.forEach(link => {
+      link.classList.remove('text-white');
+      link.classList.add('text-dark');
+    });
+    
+    sidebarTexts.forEach(text => {
+      text.classList.remove('text-white');
+      text.classList.add('text-dark');
+    });
+    
+    sidebarIcons.forEach(icon => {
+      icon.classList.remove('text-white');
+      icon.classList.add('text-dark');
+    });
+    
+    // Reset tour button
+    if (tourButton) {
+      tourButton.classList.remove('btn-outline-light');
+      tourButton.classList.add('btn-outline-dark');
+    }
+    
+    // Reset logo text color
+    if (sidenavLogo) {
+      sidenavLogo.classList.remove('text-white');
+      sidenavLogo.classList.add('text-dark');
+    }
+    
+    // Always ensure active link stays black with white text
+    if (activeLink) {
+      // Remove any primary gradient
+      activeLink.classList.remove('bg-gradient-primary');
+      // Always keep bg-gradient-dark for the active link
+      activeLink.classList.add('bg-gradient-dark');
+      activeLink.classList.add('text-white');
+      
+      // Make sure the text inside active link stays white
+      const activeText = activeLink.querySelector('.nav-link-text');
+      if (activeText) {
+        activeText.classList.remove('text-dark');
+        activeText.classList.add('text-white');
+      }
+      
+      // Ensure icon in active link is white
+      const activeIcon = activeLink.querySelector('.material-symbols-rounded');
+      if (activeIcon) {
+        activeIcon.classList.remove('text-dark');
+        activeIcon.classList.add('text-white');
+      }
+    }
+  }
+  
+  // Fixed sidebarColor function with special handling for white color
+  function sidebarColor(element) {
+    const color = element.getAttribute("data-color");
+    const sidebar = document.querySelector('.sidenav');
+    const activeLink = document.querySelector('.sidenav .nav-link.active');
+    
+    console.log("Sidebar color selected:", color); // Debug
+    
+    // Remove all possible color classes
+    sidebar.classList.remove(
+      'bg-gradient-primary',
+      'bg-gradient-dark',
+      'bg-gradient-info',
+      'bg-gradient-success',
+      'bg-gradient-warning',
+      'bg-gradient-danger',
+      'bg-white'
+    );
+    
+    // Add the new color class
+    let newColorClass;
+    if (color === 'white') {
+      newColorClass = 'bg-white';
+      console.log("White color selected, applying bg-white class");
+    } else {
+      newColorClass = `bg-gradient-${color}`;
+    }
+    
+    // Apply the new class to the sidebar
+    sidebar.classList.add(newColorClass);
+    console.log("Applied sidebar class:", newColorClass);
+    
+    // Keep active link dark with white text
+    if (activeLink) {
+      activeLink.classList.remove('bg-gradient-primary');
+      activeLink.classList.add('bg-gradient-dark');
+      activeLink.classList.add('text-white');
+      
+      const activeText = activeLink.querySelector('.nav-link-text');
+      if (activeText) {
+        activeText.classList.remove('text-dark');
+        activeText.classList.add('text-white');
+      }
+      
+      const activeIcon = activeLink.querySelector('.material-symbols-rounded');
+      if (activeIcon) {
+        activeIcon.classList.remove('text-dark');
+        activeIcon.classList.add('text-white');
+      }
+    }
+    
+    // Update badge styling
+    document.querySelectorAll('.badge-colors span').forEach(badge => {
+      badge.style.border = 'none';
+      
+      // Special handling for white badge
+      if (badge.getAttribute('data-color') === 'white') {
+        badge.style.border = '1px solid #dee2e6';
+      }
+    });
+    
+    // Highlight selected color
+    element.style.border = '3px solid #344767';
+    
+    // SAVE COLOR SETTING (special handling for white)
+    if (color === 'white') {
+      // For white color, we'll use a direct AJAX request with all possible permutations
+      // of how the white color might be stored in the database
+      console.log("Using special save method for white color");
+      
+      // Try multiple possible formats for white
+      const possibleValues = ['bg-white', 'white', 'bg-gradient-white'];
+      let successfulSave = false;
+      
+      // Try each possible value
+      tryNextValue(0);
+      
+      function tryNextValue(index) {
+        if (index >= possibleValues.length) {
+          if (!successfulSave) {
+            console.error("Failed to save white color after trying all possible values");
+          }
+          return;
+        }
+        
+        const valueToTry = possibleValues[index];
+        console.log(`Trying to save white color as: ${valueToTry}`);
+        
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/update-ui-settings/', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+        
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              try {
+                const response = JSON.parse(xhr.responseText);
+                console.log(`White color save response (${valueToTry}):`, response);
+                
+                if (response.success) {
+                  console.log(`White color saved successfully as: ${valueToTry}`);
+                  successfulSave = true;
+                  
+                  // Store successful format in localStorage for future use
+                  localStorage.setItem('whiteColorFormat', valueToTry);
+                } else {
+                  console.log(`Failed to save white color as ${valueToTry}, trying next format`);
+                  tryNextValue(index + 1);
+                }
+              } catch (e) {
+                console.error('Error parsing white color save response:', e);
+                tryNextValue(index + 1);
+              }
+            } else {
+              console.error(`Error saving white color as ${valueToTry}, status:`, xhr.status);
+              tryNextValue(index + 1);
+            }
+          }
+        };
+        
+        // Add extra parameters to ensure the request is unique and not cached
+        const data = JSON.stringify({
+          setting: 'sidebar_color',
+          value: valueToTry,
+          timestamp: new Date().getTime(),
+          random: Math.random()
+        });
+        
+        xhr.send(data);
+      }
+      
+    } else {
+      // For all other colors, use the standard method
+      console.log("Using standard save method for color:", color);
+      updateUISettings('sidebar_color', newColorClass);
+    }
+    
+    // Update text colors
+    if (color === 'dark' || color === 'primary') {
+      updateSidebarTextColor(color);
+    } else {
+      resetSidebarTextColor();
+    }
+    
+    // Store in localStorage as a fallback
+    localStorage.setItem('sidebarColor', color);
+    localStorage.setItem('sidebarColorClass', newColorClass);
+  }
+  
+  // Let's create a custom function to apply sidebar color from localStorage if DB fails
+  function applySavedSidebarColor() {
+    const savedColorClass = localStorage.getItem('sidebarColorClass');
+    const savedColor = localStorage.getItem('sidebarColor');
+    
+    if (savedColorClass && savedColor) {
+      console.log("Applying sidebar color from localStorage:", savedColorClass);
+      
+      const sidebar = document.querySelector('.sidenav');
+      
+      // Remove all possible color classes
+      sidebar.classList.remove(
+        'bg-gradient-primary',
+        'bg-gradient-dark',
+        'bg-gradient-info',
+        'bg-gradient-success',
+        'bg-gradient-warning',
+        'bg-gradient-danger',
+        'bg-white'
+      );
+      
+      // Add saved color class
+      sidebar.classList.add(savedColorClass);
+      
+      // Update color picker highlighting
+      const colorElement = document.querySelector(`.badge-colors span[data-color="${savedColor}"]`);
+      if (colorElement) {
+        document.querySelectorAll('.badge-colors span').forEach(badge => {
+          badge.style.border = badge.getAttribute('data-color') === savedColor 
+            ? '3px solid #344767' 
+            : 'none';
+            
+          // Keep thin border for white badge
+          if (badge.getAttribute('data-color') === 'white') {
+            badge.style.border = badge.getAttribute('data-color') === savedColor
+              ? '3px solid #344767'
+              : '1px solid #dee2e6';
+          }
+        });
+      }
+      
+      // Update text colors
+      if (savedColor === 'dark' || savedColor === 'primary') {
+        updateSidebarTextColor(savedColor);
+      } else {
+        resetSidebarTextColor();
+      }
+    }
+  }
+  
+  // Add this to the DOMContentLoaded function
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded - checking saved sidebar color");
+    
+    // First check the server-provided value
+    const savedColor = '{{ user.ui_settings.sidebar_color }}';
+    console.log("Initial saved sidebar color from server:", savedColor);
+    
+    // If white color is not applied from server, try localStorage as fallback
+    if (savedColor !== 'bg-white') {
+      applySavedSidebarColor();
+    }
+    
+    // Register a click listener for white color to ensure it works
+    const whiteColorElement = document.querySelector('.badge-colors span[data-color="white"]');
+    if (whiteColorElement) {
+      whiteColorElement.addEventListener('click', function(e) {
+        // Prevent default click to avoid double handling
+        e.stopPropagation();
+        
+        // Manually call sidebarColor with white
+        sidebarColor(this);
+        
+        // Force visual update of the sidebar color
+        const sidebar = document.querySelector('.sidenav');
+        sidebar.classList.remove(
+          'bg-gradient-primary',
+          'bg-gradient-dark',
+          'bg-gradient-info',
+          'bg-gradient-success',
+          'bg-gradient-warning',
+          'bg-gradient-danger'
+        );
+        sidebar.classList.add('bg-white');
+        
+        // Update color picker highlighting
+        document.querySelectorAll('.badge-colors span').forEach(badge => {
+          badge.style.border = badge.getAttribute('data-color') === 'white'
+            ? '3px solid #344767'
+            : 'none';
+        });
+        
+        // Make sure text is dark for white background
+        resetSidebarTextColor();
+        
+        console.log("White color manually applied via direct click handler");
+      });
+    }
+    
+    // Rest of your existing DOMContentLoaded code...
+  });
+  
+    </script>
+  
+    <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="df539c13-458a-4e58-8569-e6d1c8c9021c";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
+  </div>
+
+<!-- Notification mark as read functionality -->
+    <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners to mark as read buttons in the notification dropdown
+    document.querySelectorAll('.mark-read-btn').forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const notificationId = this.getAttribute('data-id');
+        
+        // Send request to mark as read
+        fetch('{% url "welcome:mark_notification_read" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: JSON.stringify({
+            notification_id: notificationId
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Update UI
+            const notificationItem = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+            if (notificationItem) {
+              notificationItem.classList.add('opacity-6');
+              const markReadBtn = notificationItem.querySelector('.mark-read-btn');
+              if (markReadBtn) {
+                markReadBtn.remove();
+              }
+              
+              // Update the counter badge
+              const unreadCount = document.querySelectorAll('.notification-item:not(.opacity-6)').length;
+              const badge = document.querySelector('#dropdownMenuButton + .badge');
+              if (badge) {
+                if (unreadCount > 0) {
+                  badge.textContent = unreadCount;
+                } else {
+                  badge.style.display = 'none';
+                }
+              }
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error marking notification as read:', error);
+        });
+      });
+    });
+  });
+
+  $(document).ready(function() {
+    // Enable Bootstrap dropdowns and tooltips
+    var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+    var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+      return new bootstrap.Dropdown(dropdownToggleEl);
+    });
+  });
+</script>
+
+<!-- Add proper sidebarType function to save sidenav type -->
+<script>
+function sidebarType(element) {
+  const body = document.querySelector("body");
+  const sidebar = document.querySelector(".sidenav");
+  const classValue = element.getAttribute("data-class");
+  
+  console.log("Changing sidenav type to:", classValue);
+  
+  // Remove all possible sidenav type classes
+  sidebar.classList.remove("bg-gradient-dark", "bg-transparent", "bg-white");
+  
+  // Add the selected class
+  sidebar.classList.add(classValue);
+  
+  // Update button active states
+  document.querySelectorAll('[onclick="sidebarType(this)"]').forEach(button => {
+    button.classList.remove("active");
+  });
+  element.classList.add("active");
+  
+  // Coordinate with sidebar color based on type
+  if (classValue === 'bg-gradient-dark') {
+    // If dark type selected, make sidebar dark color too
+    sidebar.classList.remove(
+      'bg-gradient-primary',
+      'bg-gradient-info',
+      'bg-gradient-success',
+      'bg-gradient-warning',
+      'bg-gradient-danger',
+      'bg-white'
+    );
+    sidebar.classList.add('bg-gradient-dark');
+    
+    // Also update the color selector to show dark as selected
+    document.querySelectorAll('.badge-colors span').forEach(badge => {
+      badge.style.border = badge.getAttribute('data-color') === 'dark' 
+        ? '3px solid #344767' 
+        : 'none';
+      
+      // Keep thin border for white badge
+      if (badge.getAttribute('data-color') === 'white') {
+        badge.style.border = '1px solid #dee2e6';
+      }
+    });
+    
+    // Update text colors for dark background
+    updateSidebarTextColor('dark');
+    
+    // Update both settings in database
+    updateUISettings('sidenav_type', classValue);
+    updateUISettings('sidebar_color', 'bg-gradient-dark');
+    
+    // Save to localStorage
+    localStorage.setItem('sidenavType', classValue);
+    localStorage.setItem('sidebarColor', 'dark');
+    localStorage.setItem('sidebarColorClass', 'bg-gradient-dark');
+    
+  } else if (classValue === 'bg-white') {
+    // If white type selected, make sidebar white color too
+    sidebar.classList.remove(
+      'bg-gradient-primary',
+      'bg-gradient-dark',
+      'bg-gradient-info',
+      'bg-gradient-success',
+      'bg-gradient-warning',
+      'bg-gradient-danger'
+    );
+    sidebar.classList.add('bg-white');
+    
+    // Also update the color selector to show white as selected
+    document.querySelectorAll('.badge-colors span').forEach(badge => {
+      badge.style.border = badge.getAttribute('data-color') === 'white' 
+        ? '3px solid #344767' 
+        : 'none';
+      
+      // Keep thin border for white badge
+      if (badge.getAttribute('data-color') === 'white') {
+        badge.style.border = '3px solid #344767';
+      }
+    });
+    
+    // Reset text colors for white background
+    resetSidebarTextColor();
+    
+    // Update both settings in database
+    updateUISettings('sidenav_type', classValue);
+    updateUISettings('sidebar_color', 'bg-white');
+    
+    // Save to localStorage
+    localStorage.setItem('sidenavType', classValue);
+    localStorage.setItem('sidebarColor', 'white');
+    localStorage.setItem('sidebarColorClass', 'bg-white');
+    
+  } else {
+    // For transparent, just save the type without changing color
+    updateUISettings('sidenav_type', classValue);
+    localStorage.setItem('sidenavType', classValue);
+  }
+  
+  // Initialize dark mode from localStorage if needed
+  const savedDarkMode = localStorage.getItem('darkMode');
+  if (savedDarkMode) {
+    const body = document.querySelector('body');
+    const darkModeToggle = document.getElementById('dark-version');
+    const serverDarkMode = "{{ user.ui_settings.dark_mode }}".toLowerCase() === 'true';
+    
+    console.log("Saved dark mode:", savedDarkMode);
+    console.log("Server dark mode:", serverDarkMode);
+    
+    const isDarkMode = savedDarkMode === 'true';
+    
+    // Only apply from localStorage if different from server value
+    if (isDarkMode !== serverDarkMode) {
+      console.log("Applying dark mode from localStorage:", isDarkMode);
+      
+      // Apply dark mode to body
+      if (isDarkMode) {
+        body.classList.add('dark-version');
+        if (darkModeToggle) darkModeToggle.checked = true;
+      } else {
+        body.classList.remove('dark-version');
+        if (darkModeToggle) darkModeToggle.checked = false;
+      }
+    }
+  }
+}
+
+// Add function to check and restore sidenav type on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Try to restore from localStorage if needed
+  const savedType = localStorage.getItem('sidenavType');
+  if (savedType) {
+    const sidebar = document.querySelector(".sidenav");
+    const serverType = "{{ user.ui_settings.sidenav_type }}";
+    
+    console.log("Saved sidenav type:", savedType);
+    console.log("Server sidenav type:", serverType);
+    
+    // Only restore from localStorage if server value doesn't match
+    if (!sidebar.classList.contains(serverType)) {
+      console.log("Restoring sidenav type from localStorage");
+      sidebar.classList.remove("bg-gradient-dark", "bg-transparent", "bg-white");
+      sidebar.classList.add(savedType);
+      
+      // Update active button
+      document.querySelectorAll('[onclick="sidebarType(this)"]').forEach(button => {
+        if (button.getAttribute("data-class") === savedType) {
+          button.classList.add("active");
+        } else {
+          button.classList.remove("active"); 
+        }
+      });
+    }
+  }
+});
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const searchBar = document.getElementById("search-bar");
+    const suggestionsList = document.getElementById("suggestions-list");
+
+    if (searchBar && suggestionsList) {
+      searchBar.addEventListener("input", function () {
+        const query = searchBar.value.trim();
+
+        if (query) {
+          fetch(`/search_suggestions?query=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+              suggestionsList.innerHTML = ""; // Clear previous suggestions
+              suggestionsList.style.display = "block"; // Show the dropdown
+
+              data.suggestions.forEach(suggestion => {
+                const listItem = document.createElement("li");
+                listItem.className = "dropdown-item";
+                listItem.textContent = suggestion.name;
+
+                // Navigate when clicked
+                listItem.addEventListener("click", function () {
+                  window.location.href = suggestion.url;
+                });
+
+                suggestionsList.appendChild(listItem);
+              });
+            })
+            .catch(error => console.error('Error fetching suggestions:', error));
+        } else {
+          suggestionsList.style.display = "none"; // Hide dropdown if query is empty
+        }
+      });
+
+      // Hide suggestions when clicking outside
+      document.addEventListener("click", function (e) {
+        if (!searchBar.contains(e.target)) {
+          suggestionsList.style.display = "none";
+        }
+      });
+    }
+  });
+
+  </script>
+
+<script>
+// Add darkMode function to save setting
+function darkMode(element) {
+  const body = document.querySelector('body');
+  const isDarkMode = element.checked;
+  
+  console.log("Dark mode toggled to:", isDarkMode);
+  
+  if (isDarkMode) {
+    body.classList.add('dark-version');
+  } else {
+    body.classList.remove('dark-version');
+  }
+  
+  // Save setting to database
+  updateUISettings('dark_mode', isDarkMode);
+  
+  // Save to localStorage as fallback
+  localStorage.setItem('darkMode', isDarkMode);
+}
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const searchBar = document.getElementById("search-bar");
+    const suggestionsList = document.getElementById("suggestions-list");
+
+    if (searchBar && suggestionsList) {
+      searchBar.addEventListener("input", function () {
+        const query = searchBar.value.trim();
+
+        if (query) {
+          fetch(`/search_suggestions?query=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+              suggestionsList.innerHTML = ""; // Clear previous suggestions
+              suggestionsList.style.display = "block"; // Show the dropdown
+
+              data.suggestions.forEach(suggestion => {
+                const listItem = document.createElement("li");
+                listItem.className = "dropdown-item";
+                listItem.textContent = suggestion.name;
+
+                // Navigate when clicked
+                listItem.addEventListener("click", function () {
+                  window.location.href = suggestion.url;
+                });
+
+                suggestionsList.appendChild(listItem);
+              });
+            })
+            .catch(error => console.error('Error fetching suggestions:', error));
+        } else {
+          suggestionsList.style.display = "none"; // Hide dropdown if query is empty
+        }
+      });
+
+      // Hide suggestions when clicking outside
+      document.addEventListener("click", function (e) {
+        if (!searchBar.contains(e.target)) {
+          suggestionsList.style.display = "none";
+        }
+      });
+    }
+  });
+  </script>
+
+<!-- Initialize dark mode from localStorage -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const body = document.querySelector('body');
+  const darkModeToggle = document.getElementById('dark-version');
+  
+  // Check server-side setting first (from Django template)
+  const serverDarkMode = {% if user.ui_settings.dark_mode %}true{% else %}false{% endif %};
+  console.log("Server dark mode:", serverDarkMode);
+  
+  // Check localStorage setting
+  const savedDarkMode = localStorage.getItem('darkMode');
+  console.log("Saved dark mode:", savedDarkMode);
+  
+  // Apply dark mode if either setting is true
+  if (serverDarkMode) {
+    body.classList.add('dark-version');
+    if (darkModeToggle) darkModeToggle.checked = true;
+    console.log("Applied dark mode from server setting");
+  } else if (savedDarkMode === 'true') {
+    body.classList.add('dark-version');
+    if (darkModeToggle) darkModeToggle.checked = true;
+    console.log("Applied dark mode from localStorage");
+    
+    // Sync with server
+    updateUISettings('dark_mode', true);
+  }
+});
+</script>
+
 </body>
 
 </html>

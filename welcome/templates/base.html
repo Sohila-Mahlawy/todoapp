@@ -5,10 +5,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  {% block head %}
   <link rel="apple-touch-icon" sizes="76x76" href="{% static 'assets/img/apple-icon.png' %}">
   <link rel="icon" type="image/png" href="{% static 'assets/img/favicon.ico' %}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
+{% endblock %}
   <title>
 Checkify
   </title>
@@ -49,7 +50,7 @@ Checkify
       <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2  bg-white my-2" id="sidenav-main">
         <div class="sidenav-header">
           <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
-          <a class="navbar-brand px-4 py-3 m-0" href=" https://demos.creative-tim.com/material-dashboard/pages/dashboard " target="_blank">   
+          <a class="navbar-brand px-4 py-3 m-0" href="/" target="_blank">   
             {% if business_logo %}
             <img src="{{ business_logo }}" alt="Business Logo" class="business-logo">
             {% else %}
@@ -120,7 +121,7 @@ Checkify
                   </a>
                 </li>
                 <li>
-                  <a class="dropdown-item" href="/ai-tools">
+                  <a class="dropdown-item" href="{% url 'ai_tools:dashboard' %}">
                     <i class="material-symbols-rounded opacity-5">smart_toy</i> <!-- Icon for AI Tools -->
                     <span class="ms-2">AI Tools</span>
                   </a>
@@ -292,9 +293,18 @@ Checkify
                   </ul>
                 </li>
                 <li class="nav-item d-flex align-items-center">
-                  <a href="/profile/{{user.id}}" class="nav-link text-body font-weight-bold px-0">
-                    <i class="material-symbols-rounded">account_circle</i>
-                  </a>
+                  {% if user.is_authenticated %}
+                  <li class="nav-item d-flex align-items-center">
+                    <a href="{% url 'users:profile' user.id %}" class="nav-link text-body font-weight-bold px-0">
+                      <i class="material-symbols-rounded">account_circle</i>
+                    </a>
+                  </li>
+                  {% else %}
+                  <li class="nav-item d-flex align-items-center">
+                    <a href="{% url 'users:login' %}" class="nav-link text-body font-weight-bold px-0">
+                      <i class="material-symbols-rounded">account_circle</i>
+                    </a>
+                  {% endif %}
                 </li>
               </ul>
             </div>
@@ -634,12 +644,6 @@ window.addEventListener('scroll', function() {
 });
 </script>
     <!--   Core JS Files   -->
-    <script src="../static/assets/js/core/popper.min.js"></script>
-    <script src="../static/assets/js/core/bootstrap.min.js"></script>
-    <script src="../static/assets/js/plugins/perfect-scrollbar.min.js"></script>
-    <script src="../static/assets/js/plugins/smooth-scrollbar.min.js"></script>
-    <script src="../static/assets/js/plugins/chartjs.min.js"></script>
-    <!-- Floating Warning Modal -->
 <!-- Warning Modal -->
 <div class="modal fade" id="warningModal" tabindex="-1" aria-labelledby="warningModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -709,104 +713,182 @@ window.addEventListener('scroll', function() {
           }
       }
   });
-  </script>
+</script>
     {% block scripts %} {% endblock %}
+    
+    <!-- Chart.js from CDN to ensure it's loaded -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- Chart initialization script -->
     <script>
-    // Debug logs
-    console.log("Chart Dates:", {{ chart_dates|safe }});
-    console.log("Business Tasks Data:", {{ business_tasks_data|safe }});
-
-    var ctx = document.getElementById("chart-bars").getContext("2d");
-
-    new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: {{ chart_dates|safe }},
-        datasets: [{
-          label: "Business Tasks Completed",
-          tension: 0.4,
-          borderWidth: 0,
-          borderRadius: 4,
-          borderSkipped: false,
-          backgroundColor: "#43A047",
-          data: {{ business_tasks_data|safe }},
-          barThickness: 'flex'
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: true,
+    document.addEventListener("DOMContentLoaded", function() {
+      try {
+        // Safely parse chart data
+        let chartDates = [];
+        let businessTasksData = [];
+        let activeUsers = 0;
+        
+        try {
+          {% if chart_dates %}
+            chartDates = JSON.parse('{{ chart_dates|escapejs }}');
+          {% else %}
+            chartDates = ["No Data"];
+          {% endif %}
+        } catch(e) {
+          console.error("Error parsing chart dates:", e);
+          chartDates = ["No Data"];
+        }
+        
+        try {
+          {% if business_tasks_data %}
+            businessTasksData = JSON.parse('{{ business_tasks_data|escapejs }}');
+          {% else %}
+            businessTasksData = [0];
+          {% endif %}
+        } catch(e) {
+          console.error("Error parsing business tasks data:", e);
+          businessTasksData = [0];
+        }
+        
+        {% if today_active_users %}
+          activeUsers = {{ today_active_users }};
+        {% endif %}
+        
+        // Initialize bar chart if element exists
+        const barChartElement = document.getElementById("chart-bars");
+        if (barChartElement) {
+          const ctx = barChartElement.getContext("2d");
+          if (ctx) {
+            new Chart(ctx, {
+              type: "bar",
+              data: {
+                labels: chartDates,
+                datasets: [{
+                  label: "Business Tasks Completed",
+                  tension: 0.4,
+                  borderWidth: 0,
+                  borderRadius: 4,
+                  borderSkipped: false,
+                  backgroundColor: "#43A047",
+                  data: businessTasksData,
+                  barThickness: 'flex'
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    display: true
+                  }
+                },
+                interaction: {
+                  intersect: false,
+                  mode: 'index'
+                },
+                scales: {
+                  y: {
+                    grid: {
+                      drawBorder: false,
+                      display: true,
+                      drawOnChartArea: true,
+                      drawTicks: false,
+                      borderDash: [5, 5],
+                      color: '#e5e5e5'
+                    },
+                    ticks: {
+                      suggestedMin: 0,
+                      suggestedMax: 10,
+                      beginAtZero: true,
+                      padding: 10,
+                      font: {
+                        size: 14,
+                        lineHeight: 2
+                      },
+                      color: "#737373"
+                    }
+                  },
+                  x: {
+                    grid: {
+                      drawBorder: false,
+                      display: false,
+                      drawOnChartArea: false,
+                      drawTicks: false,
+                      borderDash: [5, 5]
+                    },
+                    ticks: {
+                      display: true,
+                      color: '#737373',
+                      padding: 10,
+                      font: {
+                        size: 14,
+                        lineHeight: 2
+                      }
+                    }
+                  }
+                }
+              }
+            });
+            console.log("Bar chart initialized successfully");
+          } else {
+            console.error("Could not get 2D context for bar chart");
           }
-        },
-        interaction: {
-          intersect: false,
-          mode: 'index',
-        },
-        scales: {
-          y: {
-            grid: {
-              drawBorder: false,
-              display: true,
-              drawOnChartArea: true,
-              drawTicks: false,
-              borderDash: [5, 5],
-              color: '#e5e5e5'
-            },
-            ticks: {
-              suggestedMin: 0,
-              suggestedMax: 10,  // Adjusted to show smaller numbers better
-              beginAtZero: true,
-              padding: 10,
-              font: {
-                size: 14,
-                lineHeight: 2
-              },
-              color: "#737373"
-            },
-          },
-          x: {
-            grid: {
-              drawBorder: false,
-              display: false,
-              drawOnChartArea: false,
-              drawTicks: false,
-              borderDash: [5, 5]
-            },
-            ticks: {
-              display: true,
-              color: '#737373',
-              padding: 10,
-              font: {
-                size: 14,
-                lineHeight: 2
-              },
+        } else {
+          console.log("Bar chart element not found");
+        }
+        
+        // Handle active users display
+        const lineChartElement = document.getElementById("chart-line");
+        if (lineChartElement) {
+          const container = lineChartElement.parentElement;
+          if (container) {
+            container.innerHTML = `
+              <div style="height: 170px; display: flex; align-items: center; justify-content: center;">
+                <div style="text-align: center;">
+                  <h2 style="font-size: 48px; color: #43A047; margin: 0;">${activeUsers}</h2>
+                  <p style="margin: 10px 0 0 0; color: #737373;">Business members active today</p>
+                </div>
+              </div>
+            `;
+            console.log("Active users display created");
+          }
+        }
+        
+        // Remove unnecessary chart
+        const thirdChartElement = document.getElementById("chart-line-tasks");
+        if (thirdChartElement) {
+          try {
+            let parent = thirdChartElement;
+            // Navigate up to find the container
+            for (let i = 0; i < 4; i++) {
+              if (parent.parentElement) {
+                parent = parent.parentElement;
+              }
             }
-          },
-        },
-      },
+            if (parent) {
+              parent.remove();
+              console.log("Removed unused chart");
+            }
+          } catch(e) {
+            console.error("Error removing third chart:", e);
+          }
+        }
+      } catch (error) {
+        console.error("Error initializing charts:", error);
+      }
     });
-
-    var ctx2 = document.getElementById("chart-line").getContext("2d");
-
-    // Create a simple text display for active users count
-    const activeUsersContainer = document.getElementById("chart-line").parentElement;
-    activeUsersContainer.innerHTML = `
-        <div style="height: 170px; display: flex; align-items: center; justify-content: center;">
-            <div style="text-align: center;">
-                <h2 style="font-size: 48px; color: #43A047; margin: 0;">{{ today_active_users }}</h2>
-                <p style="margin: 10px 0 0 0; color: #737373;">Business members active today</p>
-            </div>
-        </div>
-    `;
-
-    // Remove the third chart since we don't need it
-    if (document.getElementById("chart-line-tasks")) {
-        document.getElementById("chart-line-tasks").parentElement.parentElement.parentElement.parentElement.remove();
+    </script>
+    
+    <script>
+    var win = navigator.platform.indexOf('Win') > -1;
+    if (win && document.querySelector('#sidenav-scrollbar')) {
+      var options = {
+        damping: '0.5'
+      }
+      Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
     }
     </script>
+
     <script>
     var win = navigator.platform.indexOf('Win') > -1;
     if (win && document.querySelector('#sidenav-scrollbar')) {
@@ -819,6 +901,11 @@ window.addEventListener('scroll', function() {
     <!-- Github buttons -->
     <script async defer src="https://buttons.github.io/buttons.js"></script>
     <!-- Control Center for Material Dashboard: parallax effects, scripts for the example pages etc -->
+    <script src="../static/assets/js/core/popper.min.js"></script>
+    <script src="../static/assets/js/core/bootstrap.min.js"></script>
+    <script src="../static/assets/js/plugins/perfect-scrollbar.min.js"></script>
+    <script src="../static/assets/js/plugins/smooth-scrollbar.min.js"></script>
+    <script src="../static/assets/js/plugins/chartjs.min.js"></script>
     <script src="../static/assets/js/material-dashboard.min.js?v=3.2.0"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
@@ -1260,13 +1347,13 @@ window.addEventListener('scroll', function() {
     // Rest of your existing DOMContentLoaded code...
   });
   
-  </script>
+    </script>
   
     <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="df539c13-458a-4e58-8569-e6d1c8c9021c";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
   </div>
 
 <!-- Notification mark as read functionality -->
-<script>
+    <script>
   document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners to mark as read buttons in the notification dropdown
     document.querySelectorAll('.mark-read-btn').forEach(button => {
@@ -1326,6 +1413,181 @@ window.addEventListener('scroll', function() {
       return new bootstrap.Dropdown(dropdownToggleEl);
     });
   });
+</script>
+
+<!-- Add proper sidebarType function to save sidenav type -->
+<script>
+function sidebarType(element) {
+  const body = document.querySelector("body");
+  const sidebar = document.querySelector(".sidenav");
+  const classValue = element.getAttribute("data-class");
+  
+  console.log("Changing sidenav type to:", classValue);
+  
+  // Remove all possible sidenav type classes
+  sidebar.classList.remove("bg-gradient-dark", "bg-transparent", "bg-white");
+  
+  // Add the selected class
+  sidebar.classList.add(classValue);
+  
+  // Update button active states
+  document.querySelectorAll('[onclick="sidebarType(this)"]').forEach(button => {
+    button.classList.remove("active");
+  });
+  element.classList.add("active");
+  
+  // Coordinate with sidebar color based on type
+  if (classValue === 'bg-gradient-dark') {
+    // If dark type selected, make sidebar dark color too
+    sidebar.classList.remove(
+      'bg-gradient-primary',
+      'bg-gradient-info',
+      'bg-gradient-success',
+      'bg-gradient-warning',
+      'bg-gradient-danger',
+      'bg-white'
+    );
+    sidebar.classList.add('bg-gradient-dark');
+    
+    // Also update the color selector to show dark as selected
+    document.querySelectorAll('.badge-colors span').forEach(badge => {
+      badge.style.border = badge.getAttribute('data-color') === 'dark' 
+        ? '3px solid #344767' 
+        : 'none';
+      
+      // Keep thin border for white badge
+      if (badge.getAttribute('data-color') === 'white') {
+        badge.style.border = '1px solid #dee2e6';
+      }
+    });
+    
+    // Update text colors for dark background
+    updateSidebarTextColor('dark');
+    
+    // Update both settings in database
+    updateUISettings('sidenav_type', classValue);
+    updateUISettings('sidebar_color', 'bg-gradient-dark');
+    
+    // Save to localStorage
+    localStorage.setItem('sidenavType', classValue);
+    localStorage.setItem('sidebarColor', 'dark');
+    localStorage.setItem('sidebarColorClass', 'bg-gradient-dark');
+    
+  } else if (classValue === 'bg-white') {
+    // If white type selected, make sidebar white color too
+    sidebar.classList.remove(
+      'bg-gradient-primary',
+      'bg-gradient-dark',
+      'bg-gradient-info',
+      'bg-gradient-success',
+      'bg-gradient-warning',
+      'bg-gradient-danger'
+    );
+    sidebar.classList.add('bg-white');
+    
+    // Also update the color selector to show white as selected
+    document.querySelectorAll('.badge-colors span').forEach(badge => {
+      badge.style.border = badge.getAttribute('data-color') === 'white' 
+        ? '3px solid #344767' 
+        : 'none';
+      
+      // Keep thin border for white badge
+      if (badge.getAttribute('data-color') === 'white') {
+        badge.style.border = '3px solid #344767';
+      }
+    });
+    
+    // Reset text colors for white background
+    resetSidebarTextColor();
+    
+    // Update both settings in database
+    updateUISettings('sidenav_type', classValue);
+    updateUISettings('sidebar_color', 'bg-white');
+    
+    // Save to localStorage
+    localStorage.setItem('sidenavType', classValue);
+    localStorage.setItem('sidebarColor', 'white');
+    localStorage.setItem('sidebarColorClass', 'bg-white');
+    
+  } else {
+    // For transparent, just save the type without changing color
+    updateUISettings('sidenav_type', classValue);
+    localStorage.setItem('sidenavType', classValue);
+  }
+}
+
+// Add function to check and restore sidenav type on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Try to restore from localStorage if needed
+  const savedType = localStorage.getItem('sidenavType');
+  if (savedType) {
+    const sidebar = document.querySelector(".sidenav");
+    const serverType = "{{ user.ui_settings.sidenav_type }}";
+    
+    console.log("Saved sidenav type:", savedType);
+    console.log("Server sidenav type:", serverType);
+    
+    // Only restore from localStorage if server value doesn't match
+    if (!sidebar.classList.contains(serverType)) {
+      console.log("Restoring sidenav type from localStorage");
+      sidebar.classList.remove("bg-gradient-dark", "bg-transparent", "bg-white");
+      sidebar.classList.add(savedType);
+      
+      // Update active button
+      document.querySelectorAll('[onclick="sidebarType(this)"]').forEach(button => {
+        if (button.getAttribute("data-class") === savedType) {
+          button.classList.add("active");
+        } else {
+          button.classList.remove("active"); 
+        }
+      });
+    }
+  }
+  
+  // Initialize dark mode from localStorage
+  const body = document.querySelector('body');
+  const darkModeToggle = document.getElementById('dark-version');
+  
+  // Check server-side setting first (from Django template)
+  const serverDarkMode = {% if user.ui_settings.dark_mode %}true{% else %}false{% endif %};
+  console.log("Server dark mode:", serverDarkMode);
+  
+  // Check localStorage setting
+  const savedDarkMode = localStorage.getItem('darkMode');
+  console.log("Saved dark mode:", savedDarkMode);
+  
+  // Apply dark mode if either setting is true
+  if (serverDarkMode) {
+    body.classList.add('dark-version');
+    if (darkModeToggle) darkModeToggle.checked = true;
+    console.log("Applied dark mode from server setting");
+  } else if (savedDarkMode === 'true') {
+    body.classList.add('dark-version');
+    if (darkModeToggle) darkModeToggle.checked = true;
+    console.log("Applied dark mode from localStorage");
+    
+    // Sync with server
+    updateUISettings('dark_mode', true);
+  }
+});
+
+// Dark mode function to save setting to database
+function darkMode(element) {
+  const body = document.querySelector('body');
+  const isDarkMode = element.checked;
+  
+  if (isDarkMode) {
+    body.classList.add('dark-version');
+  } else {
+    body.classList.remove('dark-version');
+  }
+  
+  // Save setting to database
+  updateUISettings('dark_mode', isDarkMode);
+  
+  // Save to localStorage as fallback
+  localStorage.setItem('darkMode', isDarkMode);
+}
 </script>
 
 </body>

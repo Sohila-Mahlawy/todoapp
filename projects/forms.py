@@ -30,3 +30,16 @@ class ProjectForm(forms.ModelForm):
                 self.fields['business'].queryset = Business.objects.filter(user=user)
                 # Make business optional for pro users
                 self.fields['business'].required = False
+                
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+
+        # Validate that end_date is not before start_date
+        if start_date and end_date and end_date < start_date:
+            raise forms.ValidationError({
+                'end_date': "End date cannot be before the start date."
+            })
+
+        return cleaned_data

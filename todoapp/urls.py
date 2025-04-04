@@ -12,6 +12,7 @@ urlpatterns = [
     path('', include('businesses.urls', namespace='businesses')),
     path('', include('users.urls', namespace='users')),
     path('', include('tasks.urls', namespace='tasks')),  # Include tasks URLs with namespace
+    path('', include('ai_tools.urls', namespace='ai_tools')),  # AI tools app
 ] 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

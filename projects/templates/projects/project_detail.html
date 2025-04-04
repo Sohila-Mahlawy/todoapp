@@ -1,7 +1,28 @@
 ﻿﻿{% extends "base.html" %}
 {% load static %}
 {% block page_title %}Project Details {% endblock %}
-
+{% block head %}
+{{ block.super }}
+<script>
+  // Ensure favicon is loaded properly
+  document.addEventListener('DOMContentLoaded', function() {
+    // Create a new favicon link tag
+    var link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/png';
+    link.href = "{% static 'assets/img/favicon.ico' %}";
+    
+    // Remove any existing favicons
+    var existingFavicons = document.querySelectorAll('link[rel*="icon"]');
+    existingFavicons.forEach(function(favicon) {
+      favicon.parentNode.removeChild(favicon);
+    });
+    
+    // Add the new favicon to the head
+    document.head.appendChild(link);
+  });
+</script>
+{% endblock %}
 {% block content %}
 <div id="page-wrapper">
     <div id="page-inner">

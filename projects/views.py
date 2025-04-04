@@ -35,11 +35,15 @@ def create_project(request):
             if request.user.businesses.exists():
                 project.business = request.user.businesses.first()
 
+            # Set default dates if not provided and ensure end_date is after start_date
             if not project.start_date:
-                project.start_date = timezone.now()
+                project.start_date = timezone.now().date()
 
             if not project.end_date:
-                project.end_date = timezone.now() + timezone.timedelta(days=30)
+                project.end_date = project.start_date + timezone.timedelta(days=30)
+            elif project.end_date < project.start_date:
+                form.add_error('end_date', "End date cannot be before the start date.")
+                return render(request, 'projects/create_project.html', {'form': form})
 
             project.save()
             form.save_m2m()

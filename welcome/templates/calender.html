@@ -222,51 +222,87 @@
             events: '{% url "welcome:get_events" %}', // Fetch events from backend
             select: function (info) {
                 console.log('Date selected:', info.startStr);
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    let eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
-                    eventModal.show();
-                } else {
-                    console.error('Bootstrap Modal not available');
-                    $('#eventModal').modal('show'); // Try jQuery method as fallback
+                // Initialize modal
+                var eventModal;
+                try {
+                    eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    console.log('Modal initialized successfully');
+                } catch (error) {
+                    console.error('Error initializing modal:', error);
+                    alert('Error initializing modal. Please check console for details.');
+                    return;
                 }
                 
+                // Show modal
+                try {
+                    eventModal.show();
+                    console.log('Modal shown successfully');
+                } catch (error) {
+                    console.error('Error showing modal:', error);
+                    alert('Error showing modal. Please check console for details.');
+                    return;
+                }
+                
+                // Set date values
                 document.getElementById('eventStart').value = info.startStr;
                 document.getElementById('eventEnd').value = info.endStr ? info.endStr : info.startStr;
 
+                // Add click handler for save button
                 document.getElementById('saveEvent').onclick = function () {
                     let eventTitle = document.getElementById('eventTitle').value;
                     let startDate = document.getElementById('eventStart').value;
                     let endDate = document.getElementById('eventEnd').value || startDate;
 
-                    if (eventTitle && startDate) {
-                        fetch('{% url "welcome:add_event" %}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token }}'
-                            },
-                            body: JSON.stringify({
-                                title: eventTitle,
-                                start_date: startDate,
-                                end_date: endDate
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'success') {
-                                calendar.addEvent({
-                                    title: eventTitle,
-                                    start: startDate,
-                                    end: endDate,
-                                    allDay: true
-                                });
-                                eventModal.hide();
-                            } else {
-                                alert('Failed to add event');
-                            }
-                        })
-                        .catch(error => console.error('Error:', error));
+                    console.log('Saving event with title:', eventTitle);
+                    console.log('Start date:', startDate);
+                    console.log('End date:', endDate);
+
+                    if (!eventTitle || !startDate) {
+                        console.error('Missing required fields');
+                        alert('Title and Start Date are required');
+                        return;
                     }
+
+                    const requestData = {
+                        title: eventTitle,
+                        start_date: startDate,
+                        end_date: endDate
+                    };
+                    
+                    console.log('Sending data to server:', JSON.stringify(requestData));
+
+                    fetch('{% url "welcome:add_event" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify(requestData)
+                    })
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Response data:', data);
+                        if (data.status === 'success') {
+                            console.log('Event added successfully with ID:', data.event_id);
+                            
+                            // Reset form and close modal
+                            document.getElementById('eventTitle').value = '';
+                            eventModal.hide();
+                            
+                            // Refresh calendar to ensure all events are displayed
+                            calendar.refetchEvents();
+                        } else {
+                            console.error('Failed to add event:', data.message || 'Unknown error');
+                            alert('Failed to add event: ' + (data.message || 'Unknown error'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error adding event:', error);
+                        alert('Error adding event. Please check console for details.');
+                    });
                 };
             },
             eventClick: function (info) {
@@ -276,6 +312,8 @@
                 let start = info.event.start ? info.event.start.toISOString().substring(0, 10) : '';
                 let end = info.event.end ? info.event.end.toISOString().substring(0, 10) : start;
                 
+                console.log('Event clicked:', { id: eventId, title: title, start: start, end: end });
+                
                 // Populate edit modal
                 document.getElementById('editEventId').value = eventId;
                 document.getElementById('editEventTitle').value = title;
@@ -283,8 +321,15 @@
                 document.getElementById('editEventEnd').value = end;
                 
                 // Show the edit modal
-                let editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
-                editModal.show();
+                let editModal;
+                try {
+                    editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+                    editModal.show();
+                } catch (error) {
+                    console.error('Error showing edit modal:', error);
+                    alert('Error showing edit modal. Please check console for details.');
+                    return;
+                }
                 
                 // Handle update button click
                 document.getElementById('updateEvent').onclick = function() {
@@ -292,40 +337,52 @@
                     let updatedStart = document.getElementById('editEventStart').value;
                     let updatedEnd = document.getElementById('editEventEnd').value || updatedStart;
                     
-                    if (updatedTitle && updatedStart) {
-                        fetch('{% url "welcome:update_event" %}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token }}'
-                            },
-                            body: JSON.stringify({
-                                id: eventId,
-                                title: updatedTitle,
-                                start_date: updatedStart,
-                                end_date: updatedEnd
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'success') {
-                                // Update the event in the calendar
-                                info.event.setProp('title', updatedTitle);
-                                info.event.setStart(updatedStart);
-                                info.event.setEnd(updatedEnd);
-                                editModal.hide();
-                                calendar.refetchEvents();
-                            } else {
-                                alert('Failed to update event');
-                            }
-                        })
-                        .catch(error => console.error('Error:', error));
+                    if (!updatedTitle || !updatedStart) {
+                        alert('Title and Start Date are required');
+                        return;
                     }
+                    
+                    console.log('Updating event:', { id: eventId, title: updatedTitle, start: updatedStart, end: updatedEnd });
+                    
+                    fetch('{% url "welcome:update_event" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            id: eventId,
+                            title: updatedTitle,
+                            start_date: updatedStart,
+                            end_date: updatedEnd
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Update response:', data);
+                        if (data.status === 'success') {
+                            // Update the event in the calendar
+                            info.event.setProp('title', updatedTitle);
+                            info.event.setStart(updatedStart);
+                            info.event.setEnd(updatedEnd);
+                            editModal.hide();
+                            calendar.refetchEvents();
+                        } else {
+                            console.error('Failed to update event:', data.message || 'Unknown error');
+                            alert('Failed to update event: ' + (data.message || 'Unknown error'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating event:', error);
+                        alert('Error updating event. Please check console for details.');
+                    });
                 };
                 
                 // Handle delete button click
                 document.getElementById('deleteEvent').onclick = function() {
                     if (confirm('Are you sure you want to delete this event?')) {
+                        console.log('Deleting event:', eventId);
+                        
                         fetch('{% url "welcome:delete_event" %}', {
                             method: 'POST',
                             headers: {
@@ -338,15 +395,20 @@
                         })
                         .then(response => response.json())
                         .then(data => {
+                            console.log('Delete response:', data);
                             if (data.status === 'success') {
                                 // Remove the event from the calendar
                                 info.event.remove();
                                 editModal.hide();
                             } else {
-                                alert('Failed to delete event');
+                                console.error('Failed to delete event:', data.message || 'Unknown error');
+                                alert('Failed to delete event: ' + (data.message || 'Unknown error'));
                             }
                         })
-                        .catch(error => console.error('Error:', error));
+                        .catch(error => {
+                            console.error('Error deleting event:', error);
+                            alert('Error deleting event. Please check console for details.');
+                        });
                     }
                 };
             }
@@ -367,21 +429,9 @@
         });
     });
     </script>
-        <script src="{% static 'assets/js/core/popper.min.js' %}"></script>
-        <script src="{% static 'assets/js/core/bootstrap.min.js' %}"></script>
-        <script src="{% static 'assets/js/plugins/perfect-scrollbar.min.js' %}"></script>
-        <script src="{% static 'assets/js/plugins/smooth-scrollbar.min.js' %}"></script>
-        <script src="{% static 'assets/js/material-dashboard.min.js' %}?v=3.2.0"></script>
-
-        <!-- Then include jQuery for your notification settings -->
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script>
-          $(document).ready(function() {
-            // Enable Bootstrap dropdowns and tooltips
-            var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'))
-            var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
-              return new bootstrap.Dropdown(dropdownToggleEl)
-            })
-            </script>
-
+    <script src="{% static 'assets/js/core/popper.min.js' %}"></script>
+    <script src="{% static 'assets/js/core/bootstrap.min.js' %}"></script>
+    <script src="{% static 'assets/js/plugins/perfect-scrollbar.min.js' %}"></script>
+    <script src="{% static 'assets/js/plugins/smooth-scrollbar.min.js' %}"></script>
+    <script src="{% static 'assets/js/material-dashboard.min.js' %}?v=3.2.0"></script>
 {% endblock %}

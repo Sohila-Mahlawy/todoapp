@@ -1,37 +1,37 @@
 {% extends "base.html" %}
+{% block page_title %}Invite Team Members{% endblock %}
+
 {% load static %}
 
 {% block content %}
 <div id="page-wrapper">
     <div id="page-inner">
-        <div class="container-fluid">
+        <div class="container">
             <div class="row">
                 <div class="col-md-12">
                     <h2 class="page-title">Invite a Team Member</h2>
-                    <h5 class="welcome-message">Welcome {{ user.username }}, Love to see you back.</h5>
                 </div>
             </div>
             <hr />
             <div class="task-manager row">
-                <div class="col-md-6">
+                <div class="col-md-12">  <!-- Changed col-md-6 to col-md-12 for full width -->
                     <div class="task-left">
-                        <h1>Invite Team Members</h1>
                         <form method="POST">
                             {% csrf_token %}
                             <div class="form-group">
                                 <label for="email">Email Address:</label>
-                                <input type="email" id="email" name="email" class="form-control" required>
+                                <input type="email" id="email" name="email" class="form-control" required style="width: 100%;">  <!-- Set width to 100% -->
                             </div>
                             <div class="form-group">
                                 <label for="role">Role:</label>
-                                <select id="role" name="role" class="form-control" required>
+                                <select id="role" name="role" class="form-control" required style="width: 100%;">  <!-- Set width to 100% -->
                                     <option value="">-- Select Role --</option>
                                     <option value="member">Member</option>
                                     <option value="manager">Manager</option>
                                     <option value="admin">Admin</option>
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-primary">Send Invitation</button>
+                            <button type="submit" class="btn btn-danger generate_button" style="width: 100%;">Send Invitation</button>  <!-- Set width to 100% -->
                         </form>
                         {% if error_message %}
                             <div class="alert alert-danger mt-3">
@@ -39,16 +39,57 @@
                             </div>
                         {% endif %}
                     </div>
-                <div class="col-md-6">
-                    <div class="task-right">
-                        <div class="actions">
-                            <div class="circle"></div>
-                            <div class="circle-2"></div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .container {
+        max-width: clamp(300px, 90%, 900px);
+        margin: clamp(20px, 5vw, 40px) auto;
+        padding: clamp(15px, 4vw, 20px);
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    .task-left {
+        padding: 30px;
+        background-color: #f7f7f7;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-danger {
+        background-color: #e91e63;  /* Red color */
+        color: white;
+        padding: 12px 24px;
+        border-radius: 5px;
+        width: 100%;  /* Ensuring the button takes the full width */
+        font-size: clamp(14px, 2vw, 16px);
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .btn-danger:hover {
+        background-color: #c2185b;  /* Darker red on hover */
+    }
+
+    @media (max-width: 768px) {
+        .task-manager {
+            padding: 15px;
+        }
+
+        .task-left {
+            padding: 15px;
+        }
+
+        .btn-danger {
+            width: auto;
+        }
+    }
+</style>
 {% endblock %}
