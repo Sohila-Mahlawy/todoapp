@@ -5,6 +5,10 @@
   <meta charset="UTF-8">
   <title>Checkify Plans</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Favicon -->
+  <link rel="shortcut icon" href="{% static 'assets/img/favicon.ico' %}" type="image/x-icon">
+  <link rel="icon" href="{% static 'assets/img/favicon.ico' %}" type="image/x-icon">
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
   <link rel="stylesheet" href="{% static 'plans.css' %}">
@@ -49,9 +53,9 @@
             {% endif %}
         </div>
     </div>
-</div>
+  </div>
 
-<div class="col-md-4">
+  <div class="col-md-4">
     <div class="generic_content {% if user_plan == 'pro' %}active{% endif %} clearfix">
         <div class="generic_head_price clearfix">
             <div class="generic_head_content clearfix">
@@ -80,9 +84,9 @@
             {% endif %}
         </div>
     </div>
-</div>
+  </div>
 
-<div class="col-md-4">
+  <div class="col-md-4">
     <div class="generic_content {% if user_plan == 'business' %}active{% endif %} clearfix">
         <div class="generic_head_price clearfix">
             <div class="generic_head_content clearfix">
@@ -114,7 +118,7 @@
             {% endif %}
         </div>
     </div>
-</div>
+  </div>
 
   <!-- Comparison Table -->
   <div class="container">
@@ -177,10 +181,33 @@
 </section>
 
 <footer>
-  <a class="bottom_btn" href="/">&copy; Netfull </a>
+  <a class="bottom_btn" href="https://netfull.site" target="_blank" rel="noopener noreferrer">&copy; Netfull</a>
 </footer>
 </div>
-</body>
+
+<!-- Bootstrap Modal for Plan Warning -->
+<div class="modal fade" id="warningModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Plan Information</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Content will be inserted by JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 <script>
   function showPlanWarning(planName) {
       const modal = new bootstrap.Modal(document.getElementById('warningModal'));
@@ -194,5 +221,6 @@
       
       modal.show();
   }
-  </script>
+</script>
+</body>
 </html>
